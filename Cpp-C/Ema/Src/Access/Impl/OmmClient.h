@@ -12,7 +12,7 @@
 #include "OmmConsumerClient.h"
 #include "OmmConsumerEvent.h"
 #include "OmmNiProviderClient.h"
-#include "OmmNiProviderEvent.h"
+#include "OmmProviderEvent.h"
 
 namespace thomsonreuters {
 
@@ -20,32 +20,96 @@ namespace ema {
 
 namespace access {
 
-class ClientFunctions {
-public:
-  virtual void onRefreshMsg( const RefreshMsg&, const OmmConsumerEvent& ) {}
-  virtual void onAllMsg( const Msg&, const OmmConsumerEvent& ) {}
-  virtual void onStatusMsg( const StatusMsg&, const OmmConsumerEvent& ) {}
-  virtual void onAckMsg( const AckMsg&, const OmmConsumerEvent& ) {}
-  virtual void onGenericMsg( const GenericMsg&, const OmmConsumerEvent& ) {}
-  virtual void onUpdateMsg( const UpdateMsg&, const OmmConsumerEvent& ) {}
-  virtual ~ClientFunctions() {}
-protected:
-  ClientFunctions() {}
+class ClientFunctions
+{
+public :
+
+	virtual void onAckMsg( const AckMsg&, Item* ) {}
+	virtual void onAllMsg( const Msg&, Item* ) {}
+	virtual void onGenericMsg( const GenericMsg&, Item* ) {}
+	virtual void onRefreshMsg( const RefreshMsg&, Item* ) {}
+	virtual void onStatusMsg( const StatusMsg&, Item* ) {}
+	virtual void onUpdateMsg( const UpdateMsg&, Item* ) {}
+
+	virtual ~ClientFunctions() {}
+
+protected :
+
+	ClientFunctions() {}
+
+private :
+
+	ClientFunctions( const ClientFunctions& );
+	ClientFunctions& operator=( const ClientFunctions& );
 };
 
 template< class C >
-class OmmClient : public ClientFunctions {
+class OmmClient : public ClientFunctions
+{
 public:
-  virtual void onRefreshMsg( const RefreshMsg&, const OmmConsumerEvent& );
-  virtual void onAllMsg( const Msg&, const OmmConsumerEvent& ) {}
-  virtual void onStatusMsg( const StatusMsg&, const OmmConsumerEvent& ) {}
-  virtual void onAckMsg( const AckMsg&, const OmmConsumerEvent& ) {}
-  virtual void onGenericMsg( const GenericMsg&, const OmmConsumerEvent& ) {}
-  virtual void onUpdateMsg( const UpdateMsg&, const OmmConsumerEvent& );
-  OmmClient( C* c ) : _theClient( c ) {}
+
+	void onAckMsg( const AckMsg&, Item* ) {}
+	void onAllMsg( const Msg&, Item* ) {}
+	void onGenericMsg( const GenericMsg&, Item* ) {}
+	void onRefreshMsg( const RefreshMsg&, Item* ) {}
+	void onStatusMsg( const StatusMsg&, Item* ) {}
+	void onUpdateMsg( const UpdateMsg&, Item* ) {}
+
+	OmmClient( C* c ) : _theClient( c ) {}
+
+	virtual ~OmmClient() {}
+
 private:
-  OmmClient();
-  C* _theClient;
+
+	OmmClient();
+	OmmClient( const OmmClient& );
+	OmmClient& operator=( const OmmClient& );
+
+	C*	_theClient;
+};
+
+template<>
+class OmmClient< OmmConsumerClient > : public ClientFunctions
+{
+public:
+
+	void onAckMsg( const AckMsg&, Item* );
+	void onAllMsg( const Msg&, Item* );
+	void onGenericMsg( const GenericMsg&, Item* );
+	void onRefreshMsg( const RefreshMsg&, Item* );
+	void onStatusMsg( const StatusMsg&, Item* );
+	void onUpdateMsg( const UpdateMsg&, Item* );
+
+	OmmClient( OmmConsumerClient* c ) : _theClient( c ) {}
+
+private:
+
+	OmmClient();
+	OmmClient( const OmmClient& );
+	OmmClient& operator=( const OmmClient& );
+
+	OmmConsumerClient* _theClient;
+};
+
+template<>
+class OmmClient< OmmNiProviderClient > : public ClientFunctions
+{
+public:
+
+	void onAllMsg( const Msg&, Item* );
+	void onGenericMsg( const GenericMsg&, Item* );
+	void onRefreshMsg( const RefreshMsg&, Item* );
+	void onStatusMsg( const StatusMsg&, Item* );
+
+	OmmClient( OmmNiProviderClient* c ) : _theClient( c ) {}
+
+private:
+
+	OmmClient();
+	OmmClient( const OmmClient& );
+	OmmClient& operator=( const OmmClient& );
+
+	OmmNiProviderClient* _theClient;
 };
 
 }
@@ -54,4 +118,4 @@ private:
 
 }
 
-#endif
+#endif // __thomsonreuters_ema_access_OmmClient_h

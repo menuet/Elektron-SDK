@@ -10,21 +10,84 @@
 
 using namespace thomsonreuters::ema::access;
 
-OmmNiProviderConfigImpl::OmmNiProviderConfigImpl() 
+OmmNiProviderConfigImpl::OmmNiProviderConfigImpl() :
+	EmaConfigImpl(),
+	_operationModel( OmmNiProviderConfig::ApiDispatchEnum ),
+	_adminControlDirectory( OmmNiProviderConfig::ApiControlEnum )
 {
-  _userNodeName = "NiProviderGroup|NiProviderList|NiProvider.";
-  modifyLoginRequest( _loginRdmReqMsg );
+	_instanceNodeName = "NiProviderGroup|NiProviderList|NiProvider.";
+
+	_loginRdmReqMsg.setRole( RDM_LOGIN_ROLE_PROV );
+
+	_pEmaConfig->verifyDefaultNiProvider();
+
+	_pEmaConfig->verifyDefaultDirectory();
 }
 
-OmmNiProviderConfigImpl::~OmmNiProviderConfigImpl() {
+OmmNiProviderConfigImpl::~OmmNiProviderConfigImpl()
+{
 }
 
-void OmmNiProviderConfigImpl::modifyLoginRequest( LoginRdmReqMsg& lrrm ) {
-  lrrm._rsslRdmLoginRequest.role = RDM_LOGIN_ROLE_PROV;
-  lrrm._rsslRdmLoginRequest.flags = RDM_LG_RQF_HAS_ROLE;
+void OmmNiProviderConfigImpl::clear()
+{
+	EmaConfigImpl::clear();
+	_operationModel = OmmNiProviderConfig::ApiDispatchEnum;
+	_adminControlDirectory = OmmNiProviderConfig::ApiControlEnum;
 }
 
-EmaString OmmNiProviderConfigImpl::getUserName() const {
+void OmmNiProviderConfigImpl::providerName( const EmaString& providerName )
+{
+	if ( _pProgrammaticConfigure && _pProgrammaticConfigure->specifyNiProviderName( providerName ) )
+		return;
+
+	EmaString item( "NiProviderGroup|NiProviderList|NiProvider." );
+	item.append( providerName ).append( "|Name" );
+	EmaString name;
+	if ( get( item, name ) )
+	{
+		if ( ! set( "NiProviderGroup|DefaultNiProvider", providerName ) )
+		{
+			EmaString mergeString( "<EmaConfig><NiProviderGroup><DefaultNiProvider value=\"" );
+			mergeString.append( providerName ).append( "\"/></NiProviderGroup></EmaConfig>" );
+			xmlDocPtr xmlDoc = xmlReadMemory( mergeString.c_str(), mergeString.length(), NULL, "notnamed.xml", XML_PARSE_HUGE );
+			if ( xmlDoc == NULL )
+				return;
+			xmlNodePtr _xmlNodePtr = xmlDocGetRootElement( xmlDoc );
+			if ( _xmlNodePtr == NULL )
+				return;
+			if ( xmlStrcmp( _xmlNodePtr->name, ( const xmlChar* ) "EmaConfig" ) )
+				return;
+			XMLnode* tmp( new XMLnode( "EmaConfig", 0, 0 ) );
+			processXMLnodePtr( tmp, _xmlNodePtr );
+			_pEmaConfig->merge( tmp );
+			xmlFreeDoc( xmlDoc );
+			delete tmp;
+		}
+	}
+	else
+	{
+		if ( providerName == "EmaNiProvider" )
+		{
+			XMLnode* niProviderList( _pEmaConfig->find< XMLnode >( "NiProviderGroup|NiProviderList" ) );
+			if ( niProviderList )
+			{
+				EmaList< XMLnode::NameString* > theNames;
+				niProviderList->getNames( theNames );
+				if ( theNames.empty() )
+					return;
+			}
+			else
+				return;
+		}
+
+		EmaString errorMsg( "OmmNiProviderConfigImpl::providerName parameter [" );
+		errorMsg.append( providerName ).append( "] is a non-existent provider name" );
+		throwIceException( errorMsg );
+	}
+}
+
+EmaString OmmNiProviderConfigImpl::getConfiguredName()
+{
 	EmaString retVal;
 
 	if ( _pEmaConfig->get< EmaString >( "NiProviderGroup|DefaultNiProvider", retVal ) )
@@ -46,5 +109,43 @@ EmaString OmmNiProviderConfigImpl::getUserName() const {
 		return retVal;
 
 	return "EmaNiProvider";
+}
 
+bool OmmNiProviderConfigImpl::getDictionaryName( const EmaString& , EmaString& ) const
+{
+	return false;
+}
+
+bool OmmNiProviderConfigImpl::getDirectoryName( const EmaString& instanceName, EmaString& retVal ) const
+{
+	if ( !_pProgrammaticConfigure || !_pProgrammaticConfigure->getActiveDirectoryName( instanceName, retVal ) )
+	{
+		EmaString nodeName( _instanceNodeName );
+		nodeName.append( instanceName );
+		nodeName.append( "|Directory" );
+
+		get<EmaString>( nodeName, retVal );
+	}
+
+	return true;
+}
+
+void OmmNiProviderConfigImpl::operationModel( OmmNiProviderConfig::OperationModel operationModel )
+{
+	_operationModel = operationModel;
+}
+
+void OmmNiProviderConfigImpl::adminControlDirectory( OmmNiProviderConfig::AdminControl control )
+{
+	_adminControlDirectory = control;
+}
+
+OmmNiProviderConfig::OperationModel OmmNiProviderConfigImpl::getOperationModel() const
+{
+	return _operationModel;
+}
+
+OmmNiProviderConfig::AdminControl OmmNiProviderConfigImpl::getAdminControlDirectory() const
+{
+	return _adminControlDirectory;
 }

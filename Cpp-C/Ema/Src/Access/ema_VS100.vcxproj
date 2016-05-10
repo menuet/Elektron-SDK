@@ -183,7 +183,7 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <AdditionalOptions>%(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/D LIBXML_STATIC%(AdditionalOptions)</AdditionalOptions>
       <Optimization>Disabled</Optimization>
       <InlineFunctionExpansion>Default</InlineFunctionExpansion>
       <IntrinsicFunctions>false</IntrinsicFunctions>
@@ -210,7 +210,7 @@
       <AdditionalDependencies>msvcprt.lib;msvcrt.lib; ws2_32.lib; libxml2.lib; librssl.lib; librsslVA.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)libema.dll</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <AdditionalLibraryDirectories>..\..\..\Eta\Libs\WIN_64_VS100\Release_MD\Shared;..\..\Libs\WIN_64_VS100\Release_MD\Shared;..\..\..\Eta\Utils\Libxml2\WIN_64_VS100\Release_MD\Shared;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\Eta\Libs\WIN_64_VS100\Release_MD\Shared;..\..\Libs\WIN_64_VS100\Release_MD\Shared;..\..\..\Eta\Utils\Libxml2\WIN_64_VS100\Release_MD;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>$(OutDir)$(ProjectName).pdb</ProgramDatabaseFile>
@@ -286,7 +286,7 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <AdditionalOptions>%(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/D LIBXML_STATIC%(AdditionalOptions)</AdditionalOptions>
       <Optimization>Disabled</Optimization>
       <InlineFunctionExpansion>Default</InlineFunctionExpansion>
       <IntrinsicFunctions>false</IntrinsicFunctions>
@@ -313,7 +313,7 @@
       <AdditionalDependencies>msvcprt.lib;msvcrt.lib; ws2_32.lib; libxml2.lib; librssl.lib; librsslVA.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)libema.dll</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <AdditionalLibraryDirectories>..\..\..\Eta\Libs\WIN_64_VS100\Release_MD_Assert\Shared;..\..\Libs\WIN_64_VS100\Release_MD_Assert\Shared;..\..\..\Eta\Utils\Libxml2\WIN_64_VS100\Release_MD_Assert\Shared;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\Eta\Libs\WIN_64_VS100\Release_MD_Assert\Shared;..\..\Libs\WIN_64_VS100\Release_MD_Assert\Shared;..\..\..\Eta\Utils\Libxml2\WIN_64_VS100\Release_MD_Assert;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>$(OutDir)$(ProjectName).pdb</ProgramDatabaseFile>
@@ -389,7 +389,7 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <AdditionalOptions>%(AdditionalOptions)</AdditionalOptions>
+      <AdditionalOptions>/D LIBXML_STATIC%(AdditionalOptions)</AdditionalOptions>
       <Optimization>Disabled</Optimization>
       <InlineFunctionExpansion>Default</InlineFunctionExpansion>
       <IntrinsicFunctions>false</IntrinsicFunctions>
@@ -416,7 +416,7 @@
       <AdditionalDependencies>msvcprtd.lib;msvcrtd.lib; ws2_32.lib; libxml2.lib; librssl.lib; librsslVA.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)libema.dll</OutputFile>
       <SuppressStartupBanner>true</SuppressStartupBanner>
-      <AdditionalLibraryDirectories>..\..\..\Eta\Libs\WIN_64_VS100\Debug_MDd\Shared;..\..\Libs\WIN_64_VS100\Debug_MDd\Shared;..\..\..\Eta\Utils\Libxml2\WIN_64_VS100\Debug_MDd\Shared;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>..\..\..\Eta\Libs\WIN_64_VS100\Debug_MDd\Shared;..\..\Libs\WIN_64_VS100\Debug_MDd\Shared;..\..\..\Eta\Utils\Libxml2\WIN_64_VS100\Debug_MDd;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <IgnoreSpecificDefaultLibraries>%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <ProgramDatabaseFile>$(OutDir)$(ProjectName).pdb</ProgramDatabaseFile>
@@ -465,6 +465,7 @@
     <ClCompile Include="Impl\EncodeIterator.cpp" />
     <ClCompile Include="Impl\Encoder.cpp" />
     <ClCompile Include="Impl\ExceptionTranslator.cpp" />
+    <ClCompile Include="Impl\ErrorClientHandler.cpp" />
     <ClCompile Include="Impl\FieldEntry.cpp" />
     <ClCompile Include="Impl\FieldList.cpp" />
     <ClCompile Include="Impl\FieldListDecoder.cpp" />
@@ -502,6 +503,7 @@
     <ClCompile Include="Impl\OmmBaseImpl.cpp" />
     <ClCompile Include="Impl\OmmBuffer.cpp" />
     <ClCompile Include="Impl\OmmBufferDecoder.cpp" />
+    <ClCompile Include="Impl\OmmClient.cpp" />
     <ClCompile Include="Impl\OmmConsumer.cpp" />
     <ClCompile Include="Impl\OmmConsumerActiveConfig.cpp" />
     <ClCompile Include="Impl\OmmConsumerClient.cpp" />
@@ -535,7 +537,6 @@
     <ClCompile Include="Impl\OmmLoggerClient.cpp" />
     <ClCompile Include="Impl\OmmMemoryExhaustionException.cpp" />
     <ClCompile Include="Impl\OmmMemoryExhaustionExceptionImpl.cpp" />
-    <ClCompile Include="Impl\OmmNiProvider.cpp" />
     <ClCompile Include="Impl\OmmNiProviderActiveConfig.cpp" />
     <ClCompile Include="Impl\OmmNiProviderClient.cpp" />
     <ClCompile Include="Impl\OmmNiProviderConfig.cpp" />
@@ -547,6 +548,11 @@
     <ClCompile Include="Impl\OmmOpaqueEncoder.cpp" />
     <ClCompile Include="Impl\OmmOutOfRangeException.cpp" />
     <ClCompile Include="Impl\OmmOutOfRangeExceptionImpl.cpp" />
+    <ClCompile Include="Impl\OmmProvider.cpp" />
+    <ClCompile Include="Impl\OmmProviderClient.cpp" />
+    <ClCompile Include="Impl\OmmProviderConfig.cpp" />
+    <ClCompile Include="Impl\OmmProviderEvent.cpp" />
+    <ClCompile Include="Impl\OmmProviderImpl.cpp" />
     <ClCompile Include="Impl\OmmQos.cpp" />
     <ClCompile Include="Impl\OmmQosDecoder.cpp" />
     <ClCompile Include="Impl\OmmReal.cpp" />
@@ -573,6 +579,7 @@
     <ClCompile Include="Impl\PostMsg.cpp" />
     <ClCompile Include="Impl\PostMsgDecoder.cpp" />
     <ClCompile Include="Impl\PostMsgEncoder.cpp" />
+    <ClCompile Include="Impl\ProgrammaticConfigure.cpp" />
     <ClCompile Include="Impl\RefreshMsg.cpp" />
     <ClCompile Include="Impl\RefreshMsgDecoder.cpp" />
     <ClCompile Include="Impl\RefreshMsgEncoder.cpp" />
@@ -630,6 +637,7 @@
     <ClInclude Include="Impl\EmaVector.h" />
     <ClInclude Include="Impl\EncodeIterator.h" />
     <ClInclude Include="Impl\Encoder.h" />
+    <ClInclude Include="Impl\ErrorClientHandler.h" />
     <ClInclude Include="Impl\ExceptionTranslator.h" />
     <ClInclude Include="Impl\FieldListDecoder.h" />
     <ClInclude Include="Impl\FieldListEncoder.h" />
@@ -653,7 +661,9 @@
     <ClInclude Include="Impl\OmmArrayDecoder.h" />
     <ClInclude Include="Impl\OmmArrayEncoder.h" />
     <ClInclude Include="Impl\OmmAsciiDecoder.h" />
+    <ClInclude Include="Impl\OmmBaseImpl.h" />
     <ClInclude Include="Impl\OmmBufferDecoder.h" />
+    <ClInclude Include="Impl\OmmClient.h" />
     <ClInclude Include="Impl\OmmConsumerActiveConfig.h" />
     <ClInclude Include="Impl\OmmConsumerConfigImpl.h" />
     <ClInclude Include="Impl\OmmConsumerImpl.h" />
@@ -663,6 +673,7 @@
     <ClInclude Include="Impl\OmmEnumDecoder.h" />
     <ClInclude Include="Impl\OmmErrorDecoder.h" />
     <ClInclude Include="Impl\OmmFloatDecoder.h" />
+    <ClInclude Include="Impl\InstanceMap.h" />
     <ClInclude Include="Impl\OmmInaccessibleLogFileExceptionImpl.h" />
     <ClInclude Include="Impl\OmmIntDecoder.h" />
     <ClInclude Include="Impl\OmmInvalidConfigurationExceptionImpl.h" />
@@ -671,12 +682,15 @@
     <ClInclude Include="Impl\OmmLoggerClient.h" />
     <ClInclude Include="Impl\OmmMemoryExhaustionExceptionImpl.h" />
     <ClInclude Include="Impl\OmmNiProviderActiveConfig.h" />
+    <ClInclude Include="Impl\OmmNiProviderClient.h" />
     <ClInclude Include="Impl\OmmNiProviderConfigImpl.h" />
+    <ClInclude Include="Impl\OmmNiProviderEvent.h" />
     <ClInclude Include="Impl\OmmNiProviderImpl.h" />
     <ClInclude Include="Impl\OmmNonRwfEncoder.h" />
     <ClInclude Include="Impl\OmmOpaqueDecoder.h" />
     <ClInclude Include="Impl\OmmOpaqueEncoder.h" />
     <ClInclude Include="Impl\OmmOutOfRangeExceptionImpl.h" />
+    <ClInclude Include="Impl\OmmProviderImpl.h" />
     <ClInclude Include="Impl\OmmQosDecoder.h" />
     <ClInclude Include="Impl\OmmRealDecoder.h" />
     <ClInclude Include="Impl\OmmRmtesDecoder.h" />
@@ -691,6 +705,7 @@
     <ClInclude Include="Impl\Pipe.h" />
     <ClInclude Include="Impl\PostMsgDecoder.h" />
     <ClInclude Include="Impl\PostMsgEncoder.h" />
+    <ClInclude Include="Impl\ProgrammaticConfigure.h" />
     <ClInclude Include="Impl\RefreshMsgDecoder.h" />
     <ClInclude Include="Impl\RefreshMsgEncoder.h" />
     <ClInclude Include="Impl\ReqMsgDecoder.h" />
@@ -707,6 +722,7 @@
     <ClInclude Include="Impl\TunnelStreamLoginReqMsgImpl.h" />
     <ClInclude Include="Impl\UpdateMsgDecoder.h" />
     <ClInclude Include="Impl\UpdateMsgEncoder.h" />
+    <ClInclude Include="Impl\UserErrorHandler.h" />
     <ClInclude Include="Impl\Utilities.h" />
     <ClInclude Include="Impl\VectorDecoder.h" />
     <ClInclude Include="Impl\VectorEncoder.h" />
@@ -734,7 +750,6 @@
     <ClInclude Include="Include\OmmArray.h" />
     <ClInclude Include="Include\OmmArrayEntry.h" />
     <ClInclude Include="Include\OmmAscii.h" />
-    <ClInclude Include="Include\OmmBaseImpl.h" />
     <ClInclude Include="Include\OmmBuffer.h" />
     <ClInclude Include="Include\OmmConsumer.h" />
     <ClInclude Include="Include\OmmConsumerClient.h" />
@@ -754,13 +769,14 @@
     <ClInclude Include="Include\OmmInvalidHandleException.h" />
     <ClInclude Include="Include\OmmInvalidUsageException.h" />
     <ClInclude Include="Include\OmmMemoryExhaustionException.h" />
-    <ClInclude Include="Include\OmmNiProvider.h" />
-    <ClInclude Include="Include\OmmNiProviderClient.h" />
     <ClInclude Include="Include\OmmNiProviderConfig.h" />
-    <ClInclude Include="Include\OmmNiProviderConfigImpl.h" />
-    <ClInclude Include="Include\OmmNiProviderErrorClient.h" />
     <ClInclude Include="Include\OmmOpaque.h" />
     <ClInclude Include="Include\OmmOutOfRangeException.h" />
+    <ClInclude Include="Include\OmmProvider.h" />
+    <ClInclude Include="Include\OmmProviderClient.h" />
+    <ClInclude Include="Include\OmmProviderConfig.h" />
+    <ClInclude Include="Include\OmmProviderErrorClient.h" />
+    <ClInclude Include="Include\OmmProviderEvent.h" />
     <ClInclude Include="Include\OmmQos.h" />
     <ClInclude Include="Include\OmmReal.h" />
     <ClInclude Include="Include\OmmRmtes.h" />

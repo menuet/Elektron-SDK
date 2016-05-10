@@ -64,6 +64,7 @@ private :
 	friend class LoginCallbackClient;
 	friend class DirectoryCallbackClient;
 	friend class DictionaryCallbackClient;
+	template< class C > friend class OmmClient;
 
 	Item*		_pItem;
 

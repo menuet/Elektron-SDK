@@ -167,7 +167,9 @@ protected :
 	Msg();
 
 	const Encoder& getEncoder() const;
+	bool hasEncoder() const;
 	void setDecoder( MsgDecoder* );
+	bool hasDecoder() const;
 
 	MsgDecoder*		_pDecoder;
 	MsgEncoder*		_pEncoder;

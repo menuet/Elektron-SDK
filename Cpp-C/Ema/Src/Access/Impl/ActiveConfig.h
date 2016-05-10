@@ -9,7 +9,6 @@
 #ifndef __thomsonreuters_ema_access_ActiveConfig_h
 #define __thomsonreuters_ema_access_ActiveConfig_h
 
-#include "EmaString.h"
 #include "OmmLoggerClient.h"
 #include "DictionaryCallbackClient.h"
 #include "EmaConfigImpl.h"
@@ -29,7 +28,7 @@
 #define DEFAULT_SYS_RECEIVE_BUFFER_SIZE				0
 #define DEFAULT_HANDLE_EXCEPTION					true
 #define DEFAULT_HOST_NAME							EmaString( "localhost" )
-#define DEFAULT_CHANNEL_SET_NAME					EmaString( "" ) 
+#define DEFAULT_CHANNEL_SET_NAME					EmaString( "" )
 #define DEFAULT_INCLUDE_DATE_IN_LOGGER_OUTPUT		false
 #define DEFAULT_INTERFACE_NAME						EmaString( "" )
 #define DEFAULT_ITEM_COUNT_HINT						100000
@@ -49,7 +48,6 @@
 #define DEFAULT_RECONNECT_MIN_DELAY					1000
 #define DEFAULT_REQUEST_TIMEOUT						15000
 #define DEFAULT_SERVICE_COUNT_HINT					513
-#define DEFAULT_SERVICE_NAME						EmaString( "14002" )
 #define DEFAULT_OBJECT_NAME							EmaString( "" )
 #define DEFAULT_TCP_NODELAY							RSSL_TRUE
 #define DEFAULT_CONS_MCAST_CFGSTRING				EmaString( "" )
@@ -65,13 +63,14 @@
 #define DEFAULT_TBCHOLD								3
 #define DEFAULT_TPPHOLD								3
 #define DEFAULT_USER_QLIMIT							65535
-#define DEFAULT_USER_DISPATCH						OmmConsumerConfig::ApiDispatchEnum
 #define DEFAULT_XML_TRACE_FILE_NAME					EmaString( "EmaTrace" )
+#define DEFAULT_XML_TRACE_HEX						false
 #define DEFAULT_XML_TRACE_MAX_FILE_SIZE				100000000
+#define DEFAULT_XML_TRACE_PING						false
 #define DEFAULT_XML_TRACE_READ						true
 #define DEFAULT_XML_TRACE_TO_FILE					false
 #define DEFAULT_XML_TRACE_TO_MULTIPLE_FILE			false
-#define DEFAULT_XML_TRACE_TO_STDOUT					true
+#define DEFAULT_XML_TRACE_TO_STDOUT					false
 #define DEFAULT_XML_TRACE_WRITE						true
 
 namespace thomsonreuters {
@@ -86,12 +85,12 @@ class ChannelConfig
 {
 public :
 
-	enum ChannelType {
-
-		SocketChannelEnum = RSSL_CONN_TYPE_SOCKET,			// indicates config for tcp ip connection
+	enum ChannelType
+	{
+		SocketChannelEnum = RSSL_CONN_TYPE_SOCKET,
 		EncryptedChannelEnum = RSSL_CONN_TYPE_ENCRYPTED,
 		HttpChannelEnum = RSSL_CONN_TYPE_HTTP,
-		ReliableMcastChannelEnum = RSSL_CONN_TYPE_RELIABLE_MCAST	// indicates config for mcast connection
+		ReliableMcastChannelEnum = RSSL_CONN_TYPE_RELIABLE_MCAST
 	};
 
 	ChannelConfig( RsslConnectionTypes );
@@ -100,11 +99,11 @@ public :
 
 	virtual void clear();
 
-	void setGuaranteedOutputBuffers(UInt64 value);
-	void setNumInputBuffers(UInt64 value);
-	void setReconnectAttemptLimit(Int64 value);
-	void setReconnectMinDelay(Int64 value);
-	void setReconnectMaxDelay(Int64 value);
+	void setGuaranteedOutputBuffers( UInt64 value );
+	void setNumInputBuffers( UInt64 value );
+	void setReconnectAttemptLimit( Int64 value );
+	void setReconnectMinDelay( Int64 value );
+	void setReconnectMaxDelay( Int64 value );
 
 	virtual ChannelType getType() const = 0;
 
@@ -128,9 +127,12 @@ public :
 	bool					xmlTraceToMultipleFiles;
 	bool					xmlTraceWrite;
 	bool					xmlTraceRead;
+	bool					xmlTracePing;
+	bool					xmlTraceHex;
 	bool					msgKeyInUpdates;
 	Channel*				pChannel;
-private : 
+
+private :
 
 	ChannelConfig();
 };
@@ -140,6 +142,7 @@ class DictionaryConfig
 public:
 
 	DictionaryConfig();
+
 	virtual ~DictionaryConfig();
 
 	void clear();
@@ -147,14 +150,14 @@ public:
 	EmaString						dictionaryName;
 	EmaString						rdmfieldDictionaryFileName;
 	EmaString						enumtypeDefFileName;
-  Dictionary::DictionaryType		dictionaryType;
+	Dictionary::DictionaryType		dictionaryType;
 };
 
 class SocketChannelConfig : public ChannelConfig
 {
 public :
 
-	SocketChannelConfig();
+	SocketChannelConfig( const EmaString& );
 
 	virtual ~SocketChannelConfig();
 
@@ -162,11 +165,13 @@ public :
 
 	ChannelType getType() const;
 
-	EmaString				hostName;
-	EmaString				serviceName;
-	
-	RsslBool				tcpNodelay;
+	EmaString		hostName;
+	EmaString		serviceName;
+	RsslBool		tcpNodelay;
 
+private :
+
+	EmaString		defaultServiceName;
 };
 
 class ReliableMcastChannelConfig : public ChannelConfig
@@ -177,33 +182,35 @@ public :
 
 	virtual ~ReliableMcastChannelConfig();
 
-	void setPacketTTL(UInt64 value);
+	void setPacketTTL( UInt64 value );
 
-	void setHsmInterval(UInt64 value);
+	void setHsmInterval( UInt64 value );
 
-	void setNdata(UInt64 value);
+	void setNdata( UInt64 value );
 
-	void setNmissing(UInt64 value);
+	void setNmissing( UInt64 value );
 
-	void setNrreq(UInt64 value);
+	void setNrreq( UInt64 value );
 
-	void setTdata(UInt64 value);
+	void setTdata( UInt64 value );
 
-	void setTrreq(UInt64 value);
+	void setTrreq( UInt64 value );
 
-	void setPktPoolLimitHigh(UInt64 value);
+	void setPktPoolLimitHigh( UInt64 value );
 
-	void setPktPoolLimitLow(UInt64 value);
+	void setPktPoolLimitLow( UInt64 value );
 
-	void setTwait(UInt64 value);
+	void setTwait( UInt64 value );
 
-	void setTbchold(UInt64 value);
+	void setTbchold( UInt64 value );
 
-	void setTpphold(UInt64 value);
+	void setTpphold( UInt64 value );
 
-	void setUserQLimit(UInt64 value);
+	void setUserQLimit( UInt64 value );
 
 	void clear();
+
+	ChannelType getType() const;
 
 	EmaString				recvAddress;
 	EmaString				recvServiceName;
@@ -228,10 +235,6 @@ public :
 	UInt32					pktPoolLimitHigh;
 	UInt32					pktPoolLimitLow;
 	UInt16					userQLimit;
-
-
-	ChannelType getType() const;
-
 };
 
 class EncryptedChannelConfig : public ChannelConfig
@@ -249,9 +252,7 @@ public :
 	EmaString				hostName;
 	EmaString				serviceName;
 	EmaString				objectName;
-	
 	RsslBool				tcpNodelay;
-
 };
 
 class HttpChannelConfig : public ChannelConfig
@@ -269,81 +270,81 @@ public :
 	EmaString				hostName;
 	EmaString				serviceName;
 	EmaString				objectName;
-	
 	RsslBool				tcpNodelay;
-
 };
 
 struct LoggerConfig
 {
-  LoggerConfig();
-  virtual ~LoggerConfig();
+	LoggerConfig();
 
-  void clear();
+	virtual ~LoggerConfig();
 
-  EmaString						loggerName;
-  EmaString						loggerFileName;
-  OmmLoggerClient::Severity		minLoggerSeverity;
-  OmmLoggerClient::LoggerType		loggerType;
-  bool							includeDateInLoggerOutput;
+	void clear();
+
+	EmaString						loggerName;
+	EmaString						loggerFileName;
+	OmmLoggerClient::Severity		minLoggerSeverity;
+	OmmLoggerClient::LoggerType		loggerType;
+	bool							includeDateInLoggerOutput;
 };
 
 class ActiveConfig
 {
 public:
-  
-  ActiveConfig();
-  virtual ~ActiveConfig();
-  void clear();
 
-	void setItemCountHint(UInt64 value);
-	void setServiceCountHint(UInt64 value);
-	void setObeyOpenWindow(UInt64 value);
-	void setPostAckTimeout(UInt64 value);
-	void setRequestTimeout(UInt64 value);
-	void setMaxOutstandingPosts(UInt64 value);
-	void setCatchUnhandledException(UInt64 value);
-	void setMaxDispatchCountApiThread(UInt64 value);
-	void setMaxDispatchCountUserThread(UInt64 value);
+	ActiveConfig( const EmaString& );
+
+	virtual ~ActiveConfig();
+
+	void clear();
+
+	void setItemCountHint( UInt64 value );
+	void setServiceCountHint( UInt64 value );
+	void setObeyOpenWindow( UInt64 value );
+	void setPostAckTimeout( UInt64 value );
+	void setRequestTimeout( UInt64 value );
+	void setMaxOutstandingPosts( UInt64 value );
+	void setCatchUnhandledException( UInt64 value );
+	void setMaxDispatchCountApiThread( UInt64 value );
+	void setMaxDispatchCountUserThread( UInt64 value );
 	void setLoginRequestTimeOut( UInt64 );
 	void setDirectoryRequestTimeOut( UInt64 );
 	void setDictionaryRequestTimeOut( UInt64 );
-	ChannelConfig* findChannelConfig(const Channel* pChannel);
-	static bool findChannelConfig(EmaVector< ChannelConfig* > &, const EmaString &, unsigned int &);
-  void clearChannelSet();
+	ChannelConfig* findChannelConfig( const Channel* pChannel );
+	static bool findChannelConfig( EmaVector< ChannelConfig* >&, const EmaString&, unsigned int& );
+	void clearChannelSet();
+	const EmaString& defaultServiceName() { return _defaultServiceName; }
 
+	EmaString		configuredName;
+	EmaString		instanceName;
+	UInt32			itemCountHint;
+	UInt32			serviceCountHint;
+	Int64			dispatchTimeoutApiThread;
+	UInt32			maxDispatchCountApiThread;
+	UInt32			maxDispatchCountUserThread;
+	Int64			pipePort;
+	UInt32			obeyOpenWindow;
+	UInt32			requestTimeout;
+	UInt32			postAckTimeout;
+	UInt32			maxOutstandingPosts;
+	UInt32			loginRequestTimeOut;
+	UInt32			directoryRequestTimeOut;
+	UInt32			dictionaryRequestTimeOut;
+	bool			catchUnhandledException;
 
-  EmaString userName;
-  EmaString instanceName;
-  UInt32 itemCountHint;
-  UInt32 serviceCountHint;
-  Int64							dispatchTimeoutApiThread;
-  UInt32							maxDispatchCountApiThread;
-  UInt32							maxDispatchCountUserThread;
-  Int64							pipePort;
-  UInt32							obeyOpenWindow;
-  UInt32							requestTimeout;
-  UInt32							postAckTimeout;
-  UInt32							maxOutstandingPosts;
-  UInt32							loginRequestTimeOut;
-  UInt32							directoryRequestTimeOut;
-  UInt32							dictionaryRequestTimeOut;
-  bool                            catchUnhandledException;
+	EmaVector< ChannelConfig* >		configChannelSet;
 
-  OmmConsumerConfig::OperationModel		userDispatch;
-	
-  EmaVector< ChannelConfig* >		configChannelSet;
-
-  DictionaryConfig dictionaryConfig;
-  LoggerConfig loggerConfig;
-  RsslRDMLoginRequest*			pRsslRDMLoginReq;
-  RsslRequestMsg*					pRsslDirectoryRequestMsg;
-  AdminReqMsg*					pRsslRdmFldRequestMsg;
-  AdminReqMsg*					pRsslEnumDefRequestMsg;
+	DictionaryConfig		dictionaryConfig;
+	LoggerConfig			loggerConfig;
+	RsslRDMLoginRequest*	pRsslRDMLoginReq;
+	RsslRequestMsg*			pRsslDirectoryRequestMsg;
+	AdminReqMsg*			pRsslRdmFldRequestMsg;
+	AdminReqMsg*			pRsslEnumDefRequestMsg;
+	AdminRefreshMsg*		pDirectoryRefreshMsg;
 
 protected:
-  
-private:
+
+	EmaString				_defaultServiceName;
 };
 
 }

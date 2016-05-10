@@ -22,19 +22,23 @@ namespace ema {
 namespace access {
 
 class ReliableMcastChannelConfig;
-
 class ChannelConfig;
 
 class ProgrammaticConfigure
 {
 public:
-	ProgrammaticConfigure(const Map &, EmaConfigErrorList& );
 
-	void addConfigure(const Map &);
+	ProgrammaticConfigure( const Map&, EmaConfigErrorList& );
 
-	bool getDefaultConsumer(EmaString &);
+	void addConfigure( const Map& );
 
-	bool specifyConsumerName ( const EmaString& consumerName );
+	bool getDefaultConsumer( EmaString& );
+
+	bool getDefaultNiProvider( EmaString& );
+
+	bool specifyConsumerName( const EmaString& consumerName );
+
+	bool specifyNiProviderName( const EmaString& );
 
 	bool getActiveChannelName( const EmaString&, EmaString& );
 
@@ -44,6 +48,8 @@ public:
 
 	bool getActiveDictionaryName( const EmaString&, EmaString& );
 
+	bool getActiveDirectoryName( const EmaString&, EmaString& );
+
 	void retrieveUserConfig( const EmaString&, ActiveConfig& );
 
 	void retrieveChannelConfig( const EmaString&, ActiveConfig&, bool, ChannelConfig* fileCfg = 0 );
@@ -52,45 +58,57 @@ public:
 
 	void retrieveDictionaryConfig( const EmaString&, ActiveConfig& );
 
-private:
-	static void retrieveGroupAndListName( const Map&, EmaString& groupName, EmaString& listName );
-
-	static bool retrieveDefaultConsumer(const Map &, EmaString&);
-
-	static void retrieveDependencyNames( const Map&, const EmaString&, UInt8& flags, EmaString&, EmaString&, EmaString&, EmaString&);
-
-	static void retrieveUser( const Map&, const EmaString&, EmaConfigErrorList&, ActiveConfig& );
-
-	static void retrieveChannel( const Map&, const EmaString&, EmaConfigErrorList&, ActiveConfig&, bool, ChannelConfig* );
-
-	static void retrieveChannelInfo(const MapEntry&, const EmaString&, EmaConfigErrorList&, ActiveConfig&, bool, ChannelConfig* );
-
-	static bool setReliableMcastChannelInfo( ReliableMcastChannelConfig *, UInt64& flags, ReliableMcastChannelConfig &, EmaString&, ChannelConfig * );
-
-	static void retrieveLogger( const Map&, const EmaString&, EmaConfigErrorList&, ActiveConfig& );
-
-	static void retrieveDictionary( const Map&, const EmaString&, EmaConfigErrorList&, ActiveConfig& );
-
-	static bool validateConsumerName(const Map &, const EmaString&);
+	void retrieveDirectoryConfig( const EmaString&, ActiveConfig& );
 
 	void clear();
 
-	ProgrammaticConfigure(const ProgrammaticConfigure &);
-	ProgrammaticConfigure & operator=(const ProgrammaticConfigure&);
+private:
 
-	EmaString _consumerName;
-	EmaString _channelName;
-	EmaString _loggerName;
-	EmaString _dictionaryName;
-	EmaString _channelSet;
+	void retrieveGroupAndListName( const Map&, EmaString& groupName, EmaString& listName );
 
-	bool _overrideConsName;
-	bool _loadnames;
-	UInt8 _nameflags;
+	bool retrieveDefaultConsumer( const Map&, EmaString& );
 
-	EmaVector<const Map*> _configList;
+	bool retrieveDefaultNiProvider( const Map&, EmaString& );
 
-	EmaConfigErrorList& _emaConfigErrList;
+	void retrieveDependencyNames( const Map&, const EmaString&, UInt8& flags, EmaString&, EmaString&, EmaString&, EmaString& , EmaString& );
+
+	void retrieveUser( const Map&, const EmaString&, EmaConfigErrorList&, ActiveConfig& );
+
+	void retrieveChannel( const Map&, const EmaString&, EmaConfigErrorList&, ActiveConfig&, bool, ChannelConfig* );
+
+	void retrieveChannelInfo( const MapEntry&, const EmaString&, EmaConfigErrorList&, ActiveConfig&, bool, ChannelConfig* );
+
+	bool setReliableMcastChannelInfo( ReliableMcastChannelConfig*, UInt64& flags, ReliableMcastChannelConfig&, EmaString&, ChannelConfig* );
+
+	void retrieveLogger( const Map&, const EmaString&, EmaConfigErrorList&, ActiveConfig& );
+
+	void retrieveDictionary( const Map&, const EmaString&, EmaConfigErrorList&, ActiveConfig& );
+
+	void retrieveDirectory( const Map&, const EmaString&, EmaConfigErrorList&, ActiveConfig& );
+
+	bool validateConsumerName( const Map&, const EmaString& );
+
+	bool validateNiProviderName( const Map&, const EmaString& );
+
+	ProgrammaticConfigure( const ProgrammaticConfigure& );
+
+	ProgrammaticConfigure& operator=( const ProgrammaticConfigure& );
+
+	EmaString	_consumerName;
+	EmaString	_niProviderName;
+	EmaString	_channelName;
+	EmaString	_loggerName;
+	EmaString	_dictionaryName;
+	EmaString	_directoryName;
+	EmaString	_channelSet;
+
+	bool		_overrideConsName;
+	bool		_overrideNiProvName;
+	bool		_dependencyNamesLoaded;
+	UInt8		_nameflags;
+
+	EmaVector<const Map*>	_configList;
+	EmaConfigErrorList&		_emaConfigErrList;
 };
 
 }

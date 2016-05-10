@@ -10,13 +10,10 @@ This directory contains preliminary example code to show off the upcoming Elektr
 - **Examples** EMA Non-Interactive Provider examples
 - **Docs**
   - Reference manual
-- **Pre-compiled Static Libraries (64bit)** 
-  - Win7, WinServer 2008 (VS2012, VS2013)
 - **Unix Makefiles** to compile Library and Examples
 	- To build the Ema libraries ETA package is required
-	- Static EMA libraries are provider for convenience. 
-- **Visual Studio vcxproj files** to compile Examples only
-	- Static EMA libraries are provided.
+- **Visual Studio vcxproj files** to compile Library and Examples.
+	
 
 
 ####This preview is runnable!  

@@ -58,12 +58,12 @@ TimeOut::getTimeOutInMicroSeconds( OmmBaseImpl & consumer, Int64 & value )
 {
 	MutexLocker ml( consumer.getTimeOutMutex() );
 
-	EmaList< TimeOut* > & theTimeOuts( consumer.getTimeOutList() );
+	EmaList< TimeOut* > & _theTimeOuts( consumer.getTimeOutList() );
 
-	if ( theTimeOuts.empty() )
+	if ( _theTimeOuts.empty() )
 		return false;
 
-	TimeOut * p( theTimeOuts.front() );
+	TimeOut * p( _theTimeOuts.front() );
 	while( true )
 	{
 	  if ( ! p )
@@ -73,7 +73,7 @@ TimeOut::getTimeOutInMicroSeconds( OmmBaseImpl & consumer, Int64 & value )
 	  {
 	    TimeOut * toBeDeleted( p );
 	    p = p->next();
-	    theTimeOuts.remove( toBeDeleted );
+	    _theTimeOuts.remove( toBeDeleted );
 	    if ( toBeDeleted->allocatedOnHeap() )
 	      delete toBeDeleted;
 	  }
@@ -103,7 +103,7 @@ TimeOut::getTimeOutInMicroSeconds( OmmBaseImpl & consumer, Int64 & value )
 }
 
 void
-TimeOut::execute( OmmBaseImpl & consumer, EmaList< TimeOut* > & theTimeOuts )
+TimeOut::execute( OmmBaseImpl & consumer, EmaList< TimeOut* > & _theTimeOuts )
 {
 	MutexLocker ml( consumer.getTimeOutMutex() );
 
@@ -116,7 +116,7 @@ TimeOut::execute( OmmBaseImpl & consumer, EmaList< TimeOut* > & theTimeOuts )
 	current = ts.tv_sec * static_cast<int>( 1E9 ) + ts.tv_nsec;
 #endif
 
-	TimeOut * p( theTimeOuts.front() );
+	TimeOut * p( _theTimeOuts.front() );
 	while( p )
 	{
 #ifdef WIN32
@@ -128,10 +128,10 @@ TimeOut::execute( OmmBaseImpl & consumer, EmaList< TimeOut* > & theTimeOuts )
 			if ( ! p->canceled )
 				(*p)();
 			if ( p->allocatedOnHeap() )
-				delete theTimeOuts.pop_front();
+				delete _theTimeOuts.pop_front();
 			else
-				theTimeOuts.pop_front();
-			p = theTimeOuts.front();
+				_theTimeOuts.pop_front();
+			p = _theTimeOuts.front();
 		}
 		else
 			return;

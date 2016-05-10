@@ -8,13 +8,14 @@
 
 #include "AckMsgEncoder.h"
 #include "ComplexType.h"
+#include "Decoder.h"
 
 using namespace thomsonreuters::ema::access;
 
 AckMsgEncoder::AckMsgEncoder() :
- MsgEncoder()
+	MsgEncoder()
 #ifdef __EMA_COPY_ON_SET__
- ,_text()
+	, _text()
 #endif
 {
 	rsslClearAckMsg( &_rsslAckMsg );
@@ -41,10 +42,10 @@ void AckMsgEncoder::extendedHeader( const EmaBuffer& extHeader )
 
 #ifdef __EMA_COPY_ON_SET__
 	_extendedHeader = extHeader;
-	_rsslAckMsg.extendedHeader.data = (char*)_extendedHeader.c_buf();
+	_rsslAckMsg.extendedHeader.data = ( char* )_extendedHeader.c_buf();
 	_rsslAckMsg.extendedHeader.length = _extendedHeader.length();
 #else
-	_rsslAckMsg.extendedHeader.data = (char*)extHeader.c_buf();
+	_rsslAckMsg.extendedHeader.data = ( char* )extHeader.c_buf();
 	_rsslAckMsg.extendedHeader.length = extHeader.length();
 #endif
 
@@ -68,7 +69,7 @@ void AckMsgEncoder::seqNum( UInt32 seqNum )
 
 RsslAckMsg* AckMsgEncoder::getRsslAckMsg() const
 {
-	return (RsslAckMsg*)&_rsslAckMsg;
+	return ( RsslAckMsg* )&_rsslAckMsg;
 }
 
 void AckMsgEncoder::nackCode( UInt8 nackCode )
@@ -83,10 +84,10 @@ void AckMsgEncoder::text( const EmaString& text )
 
 #ifdef __EMA_COPY_ON_SET__
 	_text = text;
-	_rsslAckMsg.text.data = (char*)_text.c_str();
+	_rsslAckMsg.text.data = ( char* )_text.c_str();
 	_rsslAckMsg.text.length = _text.length();
 #else
-	_rsslAckMsg.text.data = (char*)text.c_str();
+	_rsslAckMsg.text.data = ( char* )text.c_str();
 	_rsslAckMsg.text.length = text.length();
 #endif
 
@@ -109,10 +110,10 @@ void AckMsgEncoder::name( const EmaString& name )
 
 #ifdef __EMA_COPY_ON_SET__
 	_name = name;
-	_rsslAckMsg.msgBase.msgKey.name.data = (char*)_name.c_str();
+	_rsslAckMsg.msgBase.msgKey.name.data = ( char* )_name.c_str();
 	_rsslAckMsg.msgBase.msgKey.name.length = _name.length();
 #else
-	_rsslAckMsg.msgBase.msgKey.name.data = (char*)name.c_str();
+	_rsslAckMsg.msgBase.msgKey.name.data = ( char* )name.c_str();
 	_rsslAckMsg.msgBase.msgKey.name.length = name.length();
 #endif
 
@@ -163,13 +164,36 @@ void AckMsgEncoder::attrib( const ComplexType& attrib )
 	_rsslAckMsg.msgBase.msgKey.attribContainerType = convertDataType( attrib.getDataType() );
 
 #ifdef __EMA_COPY_ON_SET__
-	RsslBuffer& rsslBuf = static_cast<const Data&>(attrib).getEncoder().getRsslBuffer();
-	_attrib.setFrom( rsslBuf.data, rsslBuf.length );
+	if ( attrib.hasEncoder() && attrib.getEncoder().ownsIterator() )
+	{
+		const RsslBuffer& rsslBuf = attrib.getEncoder().getRsslBuffer();
+		_attrib.setFrom( rsslBuf.data, rsslBuf.length );
+	}
+	else if ( attrib.hasDecoder() )
+	{
+		const RsslBuffer& rsslBuf = const_cast<ComplexType&>( attrib ).getDecoder().getRsslBuffer();
+		_attrib.setFrom( rsslBuf.data, rsslBuf.length );
+	}
+	else
+	{
+		EmaString temp( "Attempt to pass in an empty ComplexType while it is not supported." );
+		throwIueException( temp );
+		return;
+	}
 
-	_rsslAckMsg.msgBase.msgKey.encAttrib.data = (char*)_attrib.c_buf();
+	_rsslAckMsg.msgBase.msgKey.encAttrib.data = ( char* )_attrib.c_buf();
 	_rsslAckMsg.msgBase.msgKey.encAttrib.length = _attrib.length();
 #else
-	_rsslAckMsg.msgBase.msgKey.encAttrib = static_cast<const Data&>(attrib).getEncoder().getRsslBuffer();
+	if ( attrib.hasEncoder() && attrib.getEncoder().ownsIterator() )
+		_rsslAckMsg.msgBase.msgKey.encAttrib = attrib.getEncoder().getRsslBuffer();
+	else if ( attrib.hasDecoder() )
+		_rsslAckMsg.msgBase.msgKey.encAttrib = const_cast<ComplexType&>( attrib ).getDecoder().getRsslBuffer();
+	else
+	{
+		EmaString temp( "Attempt to pass in an empty ComplexType while it is not supported." );
+		throwIueException( temp );
+		return;
+	}
 #endif
 
 	_rsslAckMsg.msgBase.msgKey.flags |= RSSL_MKF_HAS_ATTRIB;
@@ -195,7 +219,7 @@ void AckMsgEncoder::serviceId( UInt16 serviceId )
 bool AckMsgEncoder::hasServiceId() const
 {
 	return ( ( _rsslAckMsg.flags & RSSL_AKMF_HAS_MSG_KEY ) &&
-		( _rsslAckMsg.msgBase.msgKey.flags & RSSL_MKF_HAS_SERVICE_ID ) ) ? true : false;
+	         ( _rsslAckMsg.msgBase.msgKey.flags & RSSL_MKF_HAS_SERVICE_ID ) ) ? true : false;
 }
 
 void AckMsgEncoder::domainType( UInt8 domainType )
@@ -215,21 +239,44 @@ void AckMsgEncoder::streamId( Int32 streamId )
 void AckMsgEncoder::payload( const ComplexType& load )
 {
 	acquireEncIterator();
-	
+
 	_rsslAckMsg.msgBase.containerType = convertDataType( load.getDataType() );
 
 #ifdef __EMA_COPY_ON_SET__
-	RsslBuffer& rsslBuf = static_cast<const Data&>(load).getEncoder().getRsslBuffer();
-	_payload.setFrom( rsslBuf.data, rsslBuf.length );
+	if ( load.hasEncoder() && load.getEncoder().ownsIterator() )
+	{
+		const RsslBuffer& rsslBuf = load.getEncoder().getRsslBuffer();
+		_payload.setFrom( rsslBuf.data, rsslBuf.length );
+	}
+	else if ( load.hasDecoder() )
+	{
+		const RsslBuffer& rsslBuf = const_cast<ComplexType&>( load ).getDecoder().getRsslBuffer();
+		_payload.setFrom( rsslBuf.data, rsslBuf.length );
+	}
+	else
+	{
+		EmaString temp( "Attempt to pass in an empty ComplexType while it is not supported." );
+		throwIueException( temp );
+		return;
+	}
 
-	_rsslAckMsg.msgBase.encDataBody.data = (char*)_payload.c_buf();
+	_rsslAckMsg.msgBase.encDataBody.data = ( char* )_payload.c_buf();
 	_rsslAckMsg.msgBase.encDataBody.length = _payload.length();
 #else
-	_rsslAckMsg.msgBase.encDataBody = static_cast<const Data&>(load).getEncoder().getRsslBuffer();
+	if ( loadhasEncoder() && load.getEncoder().ownsIterator() )
+		_rsslAckMsg.msgBase.encDataBody = load.getEncoder().getRsslBuffer();
+	else if ( load.hasDecoder() )
+		_rsslAckMsg.msgBase.encDataBody = const_cast<ComplexType&>( load ).getDecoder().getRsslBuffer();
+	else
+	{
+		EmaString temp( "Attempt to pass in an empty ComplexType while it is not supported." );
+		throwIueException( temp );
+		return;
+	}
 #endif
 }
 
 RsslMsg* AckMsgEncoder::getRsslMsg() const
 {
-	return (RsslMsg*) &_rsslAckMsg;
+	return ( RsslMsg* ) &_rsslAckMsg;
 }

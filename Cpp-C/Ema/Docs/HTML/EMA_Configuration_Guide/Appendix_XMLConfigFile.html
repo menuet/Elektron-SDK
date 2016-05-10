@@ -1,0 +1,652 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xml:lang="en" lang="en" xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <meta http-equiv="Content-Style-Type" content="text/css" />
+    <!-- MOTW-DISABLED saved from url=(0014)about:internet -->
+    <title>Appendix A EmaConfig.xml Configuration File</title>
+    <link rel="StyleSheet" href="css/Appendix_XMLConfigFile.css" type="text/css" media="all" />
+    <link rel="StyleSheet" href="css/webworks.css" type="text/css" media="all" />
+    <script type="text/javascript" language="JavaScript1.2" src="wwhdata/common/context.js"></script>
+    <script type="text/javascript" language="JavaScript1.2" src="wwhdata/common/towwhdir.js"></script>
+    <script type="text/javascript" language="JavaScript1.2" src="wwhdata/common/wwhpagef.js"></script>
+    <script type="text/javascript" language="JavaScript1.2">
+      <!--
+        var  WebWorksRootPath = "";
+      // -->
+    </script>
+    <script type="text/javascript" language="JavaScript1.2">
+      <!--
+        // Set reference to top level help frame
+        //
+        var  WWHFrame = WWHGetWWHFrame("", true);
+      // -->
+    </script>
+    <script type="text/javascript" language="JavaScript1.2" src="scripts/expand.js"></script>
+  </head>
+  <body onload="WWHUpdate();" onunload="WWHUnload();" onkeydown="WWHHandleKeyDown((document.all||document.getElementById||document.layers)?event:null);" onkeypress="WWHHandleKeyPress((document.all||document.getElementById||document.layers)?event:null);" onkeyup="WWHHandleKeyUp((document.all||document.getElementById||document.layers)?event:null);">
+    <table width="100%" align="left" role="presentation">
+      <tr>
+        <td class="WebWorks_Company_Name_Top" width="250">
+          <div id="boxC">Elektron Message API C++ Edition</div>
+        </td>
+        <td width="30">
+          <div id="boxB"></div>
+        </td>
+        <td width="*"></td>
+        <td class="WebWorks_Company_Logo_Top" width="160">
+          <div id="boxA">
+            <img align="left" src="banner_logo.gif" alt="Elektron Message API C++ Edition" />
+          </div>
+        </td>
+      </tr>
+    </table>
+    <br clear="all" />
+    <hr align="left" />
+    <blockquote>
+      <div class="A1_outer" style="margin-left: 0pt">
+        <table border="0" cellspacing="0" cellpadding="0" summary="" role="presentation">
+          <tr style="vertical-align: baseline">
+            <td>
+              <div class="A1_inner" style="width: 117pt; white-space: nowrap">Appendix A	</div>
+            </td>
+            <td width="100%">
+              <div class="A1_inner"><a name="999175">EmaConfig.xml Configuration File</a></div>
+            </td>
+          </tr>
+        </table>
+      </div>
+      <div class="Body"><a name="1031802">This is the current version of the </a><span class="FileOrDirectory">EmaConfig.xml</span> file distributed with the training examples:</div>
+      <div class="Blank_Line"><a name="1032038">&nbsp;</a></div>
+      <table class="Commands" style="width: 560.95128pt" cellspacing="0" summary="">
+        <caption></caption>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top; width: 560.95128pt">
+            <div class="command"><a name="1031805">&nbsp;</a></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031807">&lt;?</a><span class="Color_003aRed">xml</span> <span class="Color_003aRed_Light">version</span><span class="Color_003aBlue">="1.0"</span> <span class="Color_003aRed_Light">encoding</span><span class="Color_003aBlue">="UTF-8"?&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><span class="Color_003aBlue"><a name="1031809">&lt;</a></span><span class="Color_003aRed">EmaConfig</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031811">&nbsp;</a></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><span class="Color_003aBlue"><a name="1031813">&lt;</a></span><span class="Color_003aRed">ConsumerGroup</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031815">&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;!--</span> <span class="Color_003aGreen">DefaultConsumer parameter defines which consumer configuration is used by OmmConsumer</span> <span class="Color_003aBlue">--&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031817">&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;!--</span> <span class="Color_003aGreen">if application does not specify it through OmmConsumerConfig::consumerName()</span> <span class="Color_003aBlue">--&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031819">&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;!--</span> <span class="Color_003aGreen">first consumer on the ConsumerList is a default consumer if this parameter is not specified</span> <span class="Color_003aBlue">--&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031821">&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">DefaultConsumer</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="Consumer_1"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031823">&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">ConsumerList</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031825">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Consumer</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031827">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Name</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="Consumer_1"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031829">&nbsp;</a></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031831">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;!--</span> <span class="Color_003aGreen">Channel is optional: defaulted to "RSSL_SOCKET + localhost + 14002"</span><span class="Color_003aBlue"> --&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031833">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Channel</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="Channel_1"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031835">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;!--</span> <span class="Color_003aGreen">Logger is optional: defaulted to "File + Success"</span><span class="Color_003aBlue"> --&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031837">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Logger</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="Logger_1"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031839">&nbsp;</a></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031841">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;!--</span> <span class="Color_003aGreen">Dictionary is optional: defaulted to "ChannelDictionary"</span><span class="Color_003aBlue"> --&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031843">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Dictionary</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="Dictionary_1"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031845">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;/</span><span class="Color_003aRed">Consumer</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031847">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Consumer</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031849">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Name</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="Consumer_2"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031851">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Channel</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="Channel_2"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031853">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Logger</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="Logger_2"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031855">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Dictionary</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="Dictionary_2"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031857">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;/</span><span class="Color_003aRed">Consumer</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031859">&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;/</span><span class="Color_003aRed">ConsumerList</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><span class="Color_003aBlue"><a name="1031861">&lt;/</a></span><span class="Color_003aRed">ConsumerGroup</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><span class="Color_003aBlue"><a name="1031863">&lt;</a></span><span class="Color_003aRed">ChannelGroup</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031865">&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">ChannelList</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031867">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Channel</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031869">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Name</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="Channel_1"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031871">&nbsp;</a></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031873">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;!--</span> <span class="Color_003aGreen">ChannelType possible values are:</span><span class="Color_003aBlue"> --&gt;</span></div>
+            <div class="command"><a name="1031874">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;!--</span> <span class="Color_003aGreen">ChannelType::RSSL_SOCKET    - TCP IP connection type</span><span class="Color_003aBlue"> --&gt;</span></div>
+            <div class="command"><a name="1031875">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;!--</span> <span class="Color_003aGreen">ChannelType::RSSL_HTTP      - Http tunnel connection type</span><span class="Color_003aBlue"> --&gt;</span></div>
+            <div class="command"><a name="1031876">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;!--</span> <span class="Color_003aGreen">ChannelType::RSSL_ENCRYPTED - Https tunnel connection type</span><span class="Color_003aBlue"> --&gt;</span></div>
+            <div class="command"><a name="1031877">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">ChannelType</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="ChannelType::RSSL_SOCKET"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031879">&nbsp;</a></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031881">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;!--</span> <span class="Color_003aGreen">CompressionType is optional: defaulted to None </span><span class="Color_003aBlue">--&gt;</span></div>
+            <div class="command"><a name="1031882">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;!--</span> <span class="Color_003aGreen">possible values: None, ZLib, LZ4 </span><span class="Color_003aBlue">--&gt;</span></div>
+            <div class="command"><a name="1031883">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">CompressionType</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="CompressionType::None"/&gt;</span></div>
+            <div class="command"><a name="1031884">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">GuaranteedOutputBuffers</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="5000"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031886">&nbsp;</a></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031888">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;!--</span> <span class="Color_003aGreen">ConnectionPingTimeout is optional: defaulted to 30000 </span><span class="Color_003aBlue">--&gt;</span></div>
+            <div class="command"><a name="1031889">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">ConnectionPingTimeout</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="30000"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031891">&nbsp;</a></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031893">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;!--</span> <span class="Color_003aGreen">TcpNodelay is optional: defaulted to 1</span><span class="Color_003aBlue"> --&gt;</span></div>
+            <div class="command"><a name="1031894">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;!--</span> <span class="Color_003aGreen">possible values: 1 (tcp_nodelay option set), 0 (tcp_nodelay not set)</span><span class="Color_003aBlue"> --&gt;</span></div>
+            <div class="command"><a name="1031895">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">TcpNodelay</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="1"/&gt;</span></div>
+            <div class="command"><a name="1031896">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Host</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="localhost"/&gt;</span></div>
+            <div class="command"><a name="1031897">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Port</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="14002"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031899">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;/</span><span class="Color_003aRed">Channel</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031901">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Channel</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031903">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Name</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="Channel_2"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031905">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">ChannelType</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="ChannelType::RSSL_SOCKET"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031907">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">CompressionType</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="CompressionType::None"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031909">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">GuaranteedOutputBuffers</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="5000"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031911">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Host</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="122.1.1.100"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031913">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Port</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="14002"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031915">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;/</span><span class="Color_003aRed">Channel</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031917">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Channel</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031919">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Name</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="Channel_3"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031921">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">ChannelType</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="ChannelType::RSSL_ENCRYPTED"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031923">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">CompressionType</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="CompressionType::None"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031925">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">GuaranteedOutputBuffers</span> <span class="Color_003aRed_Light">value</span>=<span class="Color_003aBlue">"5000"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031927">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Host</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="122.1.1.100"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031929">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Port</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="14002"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031931">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;/</span><span class="Color_003aRed">Channel</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031933">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Channel</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031935">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Name</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="Channel_4"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031937">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">ChannelType</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="ChannelType::RSSL_HTTP"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031939">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">CompressionType</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="CompressionType::None"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031941">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">GuaranteedOutputBuffers</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="5000"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031943">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Host</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="122.1.1.100"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031945">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Port</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="14002"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031947">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;/</span><span class="Color_003aRed">Channel</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031949">&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;/</span><span class="Color_003aRed">ChannelList</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><span class="Color_003aBlue"><a name="1031951">&lt;/</a></span><span class="Color_003aRed">ChannelGroup</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><span class="Color_003aBlue"><a name="1031953">&lt;</a></span><span class="Color_003aRed">LoggerGroup</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031955">&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">LoggerList</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031957">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Logger</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031959">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Name</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="Logger_1"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031961">&nbsp;</a></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031963">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;!--</span> <span class="Color_003aGreen">LoggerType is optional:  defaulted to "File"</span><span class="Color_003aBlue"> --&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031965">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;!--</span> <span class="Color_003aGreen">possible values: Stdout, File</span><span class="Color_003aBlue"> --&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031967">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">LoggerType</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="LoggerType::Stdout"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031969">&nbsp;</a></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031971">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;!--</span> <span class="Color_003aGreen">LoggerSeverity is optional: defaulted to "Success"</span><span class="Color_003aBlue"> --&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031973">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;!--</span> <span class="Color_003aGreen">possible values: Verbose, Success, Warning, Error, NoLogMsg</span><span class="Color_003aBlue"> --&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031975">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">LoggerSeverity</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="LoggerSeverity::Success"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031977">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;/</span><span class="Color_003aRed">Logger</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031979">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Logger</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031981">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Name</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="Logger_2"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031983">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">LoggerType</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="LoggerType::File"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031985">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;!--</span> <span class="Color_003aGreen">FileName is optional: defaulted to "emaLog_ProcessId.log" </span><span class="Color_003aBlue">--&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031987">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">FileName</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="emaLog"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031989">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">LoggerSeverity</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="LoggerSeverity::Success"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031991">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;/</span><span class="Color_003aRed">Logger</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031993">&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;/</span><span class="Color_003aRed">LoggerList</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><span class="Color_003aBlue"><a name="1031995">&lt;/</a></span><span class="Color_003aRed">LoggerGroup</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><span class="Color_003aBlue"><a name="1031997">&lt;</a></span><span class="Color_003aRed">DictionaryGroup</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1031999">&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">DictionaryList</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1032001">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Dictionary</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1032003">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Name</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="Dictionary_1"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1032005">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;!--</span> <span class="Color_003aGreen">DictionaryType is optional: defaulted to ChannelDictionary"</span><span class="Color_003aBlue"> --&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1032007">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;!--</span> <span class="Color_003aGreen">possible values: FileDictionary, ChannelDictionary</span><span class="Color_003aBlue"> --&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1032009">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;!--</span> <span class="Color_003aGreen">if DictionaryType is set to ChannelDictionary, file names are ignored</span><span class="Color_003aBlue"> --&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1032011">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">DictionaryType</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="DictionaryType::ChannelDictionary"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1032013">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;/</span><span class="Color_003aRed">Dictionary</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1032015">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Dictionary</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1032017">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">Name</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="Dictionary_2"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1032019">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">DictionaryType</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="DictionaryType::FileDictionary"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1032021">&nbsp;</a></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1032023">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;!--</span> <span class="Color_003aGreen">dictionary names are optional: defaulted to RDMFieldDictionary and enumtype.def</span><span class="Color_003aBlue"> --&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1032025">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">RdmFieldDictionaryFileName</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="./RDMFieldDictionary"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1032027">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;</span><span class="Color_003aRed">EnumTypeDefFileName</span> <span class="Color_003aRed_Light">value</span><span class="Color_003aBlue">="./enumtype.def"/&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1032029">&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;/</span><span class="Color_003aRed">Dictionary</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1032031">&nbsp;&nbsp;&nbsp;&nbsp;</a><span class="Color_003aBlue">&lt;/</span><span class="Color_003aRed">DictionaryList</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><span class="Color_003aBlue"><a name="1032033">&lt;/</a></span><span class="Color_003aRed">DictionaryGroup</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><span class="Color_003aBlue"><a name="1032035">&lt;/</a></span><span class="Color_003aRed">EmaConfig</span><span class="Color_003aBlue">&gt;</span></div>
+          </td>
+        </tr>
+        <tr style="vertical-align: top">
+          <td style="background-color: #FFF4E4; padding-bottom: 2pt; padding-left: 2pt; padding-right: 6pt; padding-top: 2pt; vertical-align: top">
+            <div class="command"><a name="1032037">&nbsp;</a></div>
+          </td>
+        </tr>
+      </table>
+      <div class="Body"><a name="1031250">&nbsp;</a></div>
+      <script type="text/javascript" language="JavaScript1.2">
+        <!--
+          // Clear related topics
+          //
+          WWHClearRelatedTopics();
+
+          document.writeln(WWHRelatedTopicsInlineHTML());
+        // -->
+      </script>
+    </blockquote>
+    <hr align="left" />
+    <div class="WebWorks_Breadcrumbs" style="text-align: left;">Appendix A	EmaConfig.xml Configuration File</div>
+    <br />
+    <script type="text/javascript" language="JavaScript1.2">
+      <!--
+        document.write(WWHRelatedTopicsDivTag() + WWHPopupDivTag() + WWHALinksDivTag());
+      // -->
+    </script>
+  </body>
+</html>

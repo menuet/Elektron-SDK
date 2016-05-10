@@ -15,13 +15,112 @@
 #include "DirectoryCallbackClient.h"
 #include "LoginCallbackClient.h"
 
+#include <new>
+
 using namespace thomsonreuters::ema::access;
 
-void OmmConsumerImpl::downloadDictionary()
+OmmConsumerImpl::OmmConsumerImpl( const OmmConsumerConfig& config ) :
+	OmmBaseImpl( _activeConfig )
+{
+	_activeConfig.operationModel = config._pImpl->operationModel();
+	OmmBaseImpl::initialize( config._pImpl );
+}
+
+OmmConsumerImpl::OmmConsumerImpl( const OmmConsumerConfig& config, OmmConsumerErrorClient& client ) :
+	OmmBaseImpl( _activeConfig, client )
+{
+	_activeConfig.operationModel = config._pImpl->operationModel();
+	OmmBaseImpl::initialize( config._pImpl );
+}
+
+OmmConsumerImpl::~OmmConsumerImpl()
+{
+	uninitialize();
+}
+
+void OmmConsumerImpl::readCustomConfig( EmaConfigImpl* pConfigImpl )
+{
+	pConfigImpl->getDictionaryName( _activeConfig.configuredName, _activeConfig.dictionaryConfig.dictionaryName );
+
+	if ( _activeConfig.dictionaryConfig.dictionaryName.empty() )
+	{
+		_activeConfig.dictionaryConfig.dictionaryName.set( "Dictionary" );
+		_activeConfig.dictionaryConfig.dictionaryType = Dictionary::ChannelDictionaryEnum;
+		_activeConfig.dictionaryConfig.enumtypeDefFileName.clear();
+		_activeConfig.dictionaryConfig.rdmfieldDictionaryFileName.clear();
+	}
+	else
+	{
+		EmaString dictionaryNodeName( "DictionaryGroup|DictionaryList|Dictionary." );
+		dictionaryNodeName.append( _activeConfig.dictionaryConfig.dictionaryName ).append( "|" );
+
+		EmaString name;
+		if ( !pConfigImpl->get< EmaString >( dictionaryNodeName + "Name", name ) )
+		{
+			EmaString errorMsg( "no configuration exists for consumer dictionary [" );
+			errorMsg.append( dictionaryNodeName ).append( "]; will use dictionary defaults" );
+			pConfigImpl->appendConfigError( errorMsg, OmmLoggerClient::ErrorEnum );
+		}
+
+		if ( !pConfigImpl->get<Dictionary::DictionaryType>( dictionaryNodeName + "DictionaryType", _activeConfig.dictionaryConfig.dictionaryType ) )
+			_activeConfig.dictionaryConfig.dictionaryType = Dictionary::ChannelDictionaryEnum;
+
+		if ( _activeConfig.dictionaryConfig.dictionaryType == Dictionary::FileDictionaryEnum )
+		{
+			if ( !pConfigImpl->get<EmaString>( dictionaryNodeName + "RdmFieldDictionaryFileName", _activeConfig.dictionaryConfig.rdmfieldDictionaryFileName ) )
+				_activeConfig.dictionaryConfig.rdmfieldDictionaryFileName.set( "./RDMFieldDictionary" );
+			if ( !pConfigImpl->get<EmaString>( dictionaryNodeName + "EnumTypeDefFileName", _activeConfig.dictionaryConfig.enumtypeDefFileName ) )
+				_activeConfig.dictionaryConfig.enumtypeDefFileName.set( "./enumtype.def" );
+		}
+	}
+
+	if ( ProgrammaticConfigure* ppc = pConfigImpl->getProgrammaticConfigure() )
+	{
+		ppc->retrieveDictionaryConfig( _activeConfig.dictionaryConfig.dictionaryName, _activeConfig );
+	}
+
+	const UInt32 maxUInt32( 0xFFFFFFFF );
+	UInt64 tmp;
+	EmaString instanceNodeName( pConfigImpl->getInstanceNodeName() );
+	instanceNodeName.append( _activeConfig.configuredName ).append( "|" );
+
+	if ( pConfigImpl->get<UInt64>( instanceNodeName + "ObeyOpenWindow", tmp ) )
+		_activeConfig.obeyOpenWindow = static_cast<UInt32>( tmp > 0 ? 1 : 0 );
+
+	if ( pConfigImpl->get<UInt64>( instanceNodeName + "PostAckTimeout", tmp ) )
+		_activeConfig.postAckTimeout = static_cast<UInt32>( tmp > maxUInt32 ? maxUInt32 : tmp );
+
+	if ( pConfigImpl->get<UInt64>( instanceNodeName + "RequestTimeout", tmp ) )
+		_activeConfig.requestTimeout = static_cast<UInt32>( tmp > maxUInt32 ? maxUInt32 : tmp );
+
+	if ( pConfigImpl->get< UInt64 >( instanceNodeName + "DirectoryRequestTimeOut", tmp ) )
+		_activeConfig.directoryRequestTimeOut = static_cast<UInt32>( tmp > maxUInt32 ? maxUInt32 : tmp );
+
+	if ( pConfigImpl->get<UInt64>( instanceNodeName + "MaxOutstandingPosts", tmp ) )
+		_activeConfig.maxOutstandingPosts = static_cast<UInt32>( tmp > maxUInt32 ? maxUInt32 : tmp );
+
+	_activeConfig.pRsslDirectoryRequestMsg = pConfigImpl->getDirectoryReq();
+
+	_activeConfig.pRsslEnumDefRequestMsg = pConfigImpl->getEnumDefDictionaryReq();
+
+	_activeConfig.pRsslRdmFldRequestMsg = pConfigImpl->getRdmFldDictionaryReq();
+}
+
+void OmmConsumerImpl::loadDictionary()
 {
 	UInt64 timeOutLengthInMicroSeconds = _activeConfig.dictionaryRequestTimeOut * 1000;
 	_eventTimedOut = false;
-	TimeOut* loginWatcher = new TimeOut ( *this, timeOutLengthInMicroSeconds, &OmmBaseImpl::terminateIf, reinterpret_cast< void * >( this ), true );
+
+	TimeOut* pWatcher = 0;
+	
+	try {
+		pWatcher = new TimeOut( *this, timeOutLengthInMicroSeconds, &OmmBaseImpl::terminateIf, reinterpret_cast< void* >( this ), true );
+	}
+	catch ( std::bad_alloc ) {
+		throwMeeException( "Failed to allocate memory in OmmConsumerImpl::loadDictionary()." );
+		return;
+	}
+
 	while ( !_atExit && ! _eventTimedOut && !_pDictionaryCallbackClient->isDictionaryReady() )
 		rsslReactorDispatchLoop( _activeConfig.dispatchTimeoutApiThread, _activeConfig.maxDispatchCountApiThread );
 
@@ -29,26 +128,36 @@ void OmmConsumerImpl::downloadDictionary()
 	{
 		EmaString failureMsg( "dictionary retrieval failed (timed out after waiting " );
 		failureMsg.append( _activeConfig.dictionaryRequestTimeOut ).append( " milliseconds) for " );
-		ChannelConfig *pChannelcfg = _activeConfig.configChannelSet[0];
+		ChannelConfig* pChannelcfg = _activeConfig.configChannelSet[0];
 		if ( pChannelcfg->getType() == ChannelConfig::SocketChannelEnum )
 		{
-			SocketChannelConfig * channelConfig( reinterpret_cast< SocketChannelConfig * >( pChannelcfg ) );
-			failureMsg.append( channelConfig->hostName ).append( ":" ).append( channelConfig->serviceName ).append(")");
+			SocketChannelConfig* channelConfig( reinterpret_cast< SocketChannelConfig* >( pChannelcfg ) );
+			failureMsg.append( channelConfig->hostName ).append( ":" ).append( channelConfig->serviceName ).append( ")" );
 		}
 		if ( OmmLoggerClient::ErrorEnum >= _activeConfig.loggerConfig.minLoggerSeverity )
-			_pLoggerClient->log(_activeConfig.instanceName, OmmLoggerClient::ErrorEnum, failureMsg);
+			_pLoggerClient->log( _activeConfig.instanceName, OmmLoggerClient::ErrorEnum, failureMsg );
 		throwIueException( failureMsg );
 		return;
 	}
 	else
-		loginWatcher->cancel();
+		pWatcher->cancel();
 }
 
-void OmmConsumerImpl::downloadDirectory()
+void OmmConsumerImpl::loadDirectory()
 {
 	UInt64 timeOutLengthInMicroSeconds = _activeConfig.directoryRequestTimeOut * 1000;
 	_eventTimedOut = false;
-	TimeOut* loginWatcher = new TimeOut ( *this, timeOutLengthInMicroSeconds, &OmmBaseImpl::terminateIf, reinterpret_cast< void * >( this ), true );
+
+	TimeOut* pWatcher = 0;
+	
+	try {
+		pWatcher = new TimeOut( *this, timeOutLengthInMicroSeconds, &OmmBaseImpl::terminateIf, reinterpret_cast< void* >( this ), true );
+	}
+	catch ( std::bad_alloc ) {
+		throwMeeException( "Failed to allocate memory in OmmConsumerImpl::downloadDirectory()." );
+		return;
+	}
+	
 	while ( ! _atExit && ! _eventTimedOut && ( _state < DirectoryStreamOpenOkEnum ) )
 		rsslReactorDispatchLoop( _activeConfig.dispatchTimeoutApiThread, _activeConfig.maxDispatchCountApiThread );
 
@@ -56,19 +165,23 @@ void OmmConsumerImpl::downloadDirectory()
 	{
 		EmaString failureMsg( "directory retrieval failed (timed out after waiting " );
 		failureMsg.append( _activeConfig.directoryRequestTimeOut ).append( " milliseconds) for " );
-		ChannelConfig *pChannelcfg = _activeConfig.configChannelSet[0];
+		ChannelConfig* pChannelcfg = _activeConfig.configChannelSet[0];
 		if ( pChannelcfg->getType() == ChannelConfig::SocketChannelEnum )
 		{
-			SocketChannelConfig * channelConfig( reinterpret_cast< SocketChannelConfig * >( pChannelcfg ) );
-			failureMsg.append( channelConfig->hostName ).append( ":" ).append( channelConfig->serviceName ).append(")");
+			SocketChannelConfig* channelConfig( reinterpret_cast< SocketChannelConfig* >( pChannelcfg ) );
+			failureMsg.append( channelConfig->hostName ).append( ":" ).append( channelConfig->serviceName ).append( ")" );
 		}
 		if ( OmmLoggerClient::ErrorEnum >= _activeConfig.loggerConfig.minLoggerSeverity )
-			_pLoggerClient->log(_activeConfig.instanceName, OmmLoggerClient::ErrorEnum, failureMsg);
+			_pLoggerClient->log( _activeConfig.instanceName, OmmLoggerClient::ErrorEnum, failureMsg );
 		throwIueException( failureMsg );
 		return;
 	}
 	else
-		loginWatcher->cancel();
+		pWatcher->cancel();
+}
+
+void OmmConsumerImpl::processChannelEvent( RsslReactorChannelEvent* )
+{
 }
 
 void OmmConsumerImpl::setRsslReactorChannelRole( RsslReactorChannelRole& role )
@@ -94,35 +207,13 @@ void OmmConsumerImpl::setRsslReactorChannelRole( RsslReactorChannelRole& role )
 	consumerRole.watchlistOptions.maxOutstandingPosts = getActiveConfig().maxOutstandingPosts;
 }
 
-OmmConsumerImpl::OmmConsumerImpl( const OmmConsumerConfig& config ) :
- OmmBaseImpl( _activeConfig )
-{
-	OmmBaseImpl::initialize( config._pImpl );
-}
-
-OmmConsumerImpl::OmmConsumerImpl( const OmmConsumerConfig& config, OmmConsumerErrorClient& client ) :
- OmmBaseImpl( _activeConfig, client )
-{
-	OmmBaseImpl::initialize( config._pImpl );
-}
-
-OmmConsumerImpl::~OmmConsumerImpl()
-{
-	uninitialize();
-}
-
-void OmmConsumerImpl::uninitialize( bool caughtExcep )
-{
-	OmmBaseImpl::uninitialize();
-}
-
 void OmmConsumerImpl::addSocket( RsslSocket fd )
 {
-#ifdef USING_SELECT	
+#ifdef USING_SELECT
 	FD_SET( fd, &_readFds );
 	FD_SET( fd, &_exceptFds );
 #else
-	addFd( fd , POLLIN|POLLERR|POLLHUP);
+	addFd( fd , POLLIN | POLLERR | POLLHUP );
 #endif
 }
 
@@ -138,19 +229,30 @@ void OmmConsumerImpl::removeSocket( RsslSocket fd )
 
 Int64 OmmConsumerImpl::dispatch( Int64 timeOut )
 {
-	if ( _activeConfig.userDispatch == OmmConsumerConfig::UserDispatchEnum && !_atExit )
-	  return rsslReactorDispatchLoop( timeOut, _activeConfig.maxDispatchCountUserThread ) ? OmmConsumer::DispatchedEnum : OmmConsumer::TimeoutEnum;
+	if ( _activeConfig.operationModel == OmmConsumerConfig::UserDispatchEnum && !_atExit )
+		return rsslReactorDispatchLoop( timeOut, _activeConfig.maxDispatchCountUserThread ) ? OmmConsumer::DispatchedEnum : OmmConsumer::TimeoutEnum;
 
 	return OmmConsumer::TimeoutEnum;
 }
 
 UInt64 OmmConsumerImpl::registerClient( const ReqMsg& reqMsg, OmmConsumerClient& ommConsClient,
-					void* closure, UInt64 parentHandle )
+                                        void* closure, UInt64 parentHandle )
 {
-	_theClient = new OmmClient< OmmConsumerClient >( &ommConsClient );
+	OmmClient< OmmConsumerClient >* client = 0;
+
+	try
+	{
+		client = new OmmClient< OmmConsumerClient >( &ommConsClient );
+	}
+	catch ( std::bad_alloc )
+	{
+		throwMeeException( "Failed to allocate client in OmmConsumerImpl::registerClient( const ReqMsg& )" );
+		return 0;
+	}
+
 	_userLock.lock();
 
-	UInt64 handle = _pItemCallbackClient ? _pItemCallbackClient->registerClient( reqMsg, _theClient, closure, parentHandle ) : 0;
+	UInt64 handle = _pItemCallbackClient ? _pItemCallbackClient->registerClient( reqMsg, client, closure, parentHandle ) : 0;
 
 	_userLock.unlock();
 
@@ -158,16 +260,27 @@ UInt64 OmmConsumerImpl::registerClient( const ReqMsg& reqMsg, OmmConsumerClient&
 }
 
 UInt64 OmmConsumerImpl::registerClient( const TunnelStreamRequest& tunnelStreamRequest,
-                                                                           OmmConsumerClient& ommConsClient, void* closure )
+                                        OmmConsumerClient& ommConsClient, void* closure )
 {
-	_theClient = new OmmClient< OmmConsumerClient >( &ommConsClient );
-    _userLock.lock();
+	OmmClient< OmmConsumerClient >* client = 0;
 
-    UInt64 handle = _pItemCallbackClient ? _pItemCallbackClient->registerClient( tunnelStreamRequest, _theClient, closure ) : 0;
+	try
+	{
+		client = new OmmClient< OmmConsumerClient >( &ommConsClient );
+	}
+	catch ( std::bad_alloc )
+	{
+		throwMeeException( "Failed to allocate client in OmmConsumerImpl::registerClient( const TunnelStreamRequest& )" );
+		return 0;
+	}
 
-    _userLock.unlock();
+	_userLock.lock();
 
-    return handle;
+	UInt64 handle = _pItemCallbackClient ? _pItemCallbackClient->registerClient( tunnelStreamRequest, client, closure ) : 0;
+
+	_userLock.unlock();
+
+	return handle;
 }
 
 RsslReactorCallbackRet OmmConsumerImpl::tunnelStreamStatusEventCallback( RsslTunnelStream* pTunnelStream, RsslTunnelStreamStatusEvent* pTunnelStreamStatusEvent )
@@ -185,3 +298,19 @@ RsslReactorCallbackRet OmmConsumerImpl::tunnelStreamQueueMsgCallback( RsslTunnel
 	return static_cast<TunnelItem*>( pTunnelStream->userSpecPtr )->getImpl().getItemCallbackClient().processCallback( pTunnelStream, pTunnelStreamQueueMsgEvent );
 }
 
+void OmmConsumerImpl::createDictionaryCallbackClient( DictionaryCallbackClient*& dictionaryCallbackClient, OmmBaseImpl& impl )
+{
+	dictionaryCallbackClient = DictionaryCallbackClient::create( impl );
+	dictionaryCallbackClient->initialize();
+}
+
+void OmmConsumerImpl::createDirectoryCallbackClient( DirectoryCallbackClient*& directoryCallbackClient, OmmBaseImpl& impl )
+{
+	directoryCallbackClient = DirectoryCallbackClient::create( impl );
+	directoryCallbackClient->initialize();
+}
+
+bool OmmConsumerImpl::isApiDispatching() const
+{
+	return _activeConfig.operationModel == OmmConsumerConfig::ApiDispatchEnum ? true : false;
+}

@@ -10,9 +10,7 @@
 #define __thomsonreuters_ema_access_OmmConsumerImpl_h
 
 #include "OmmBaseImpl.h"
-#include "Thread.h"
 #include "OmmConsumerActiveConfig.h"
-#include "OmmClient.h"
 
 namespace thomsonreuters {
 
@@ -24,41 +22,57 @@ class OmmConsumerImpl : public OmmBaseImpl
 {
 public:
 
-	static RsslReactorCallbackRet tunnelStreamStatusEventCallback( RsslTunnelStream* , RsslTunnelStreamStatusEvent* );
+	static RsslReactorCallbackRet tunnelStreamStatusEventCallback( RsslTunnelStream*, RsslTunnelStreamStatusEvent* );
 
-	static RsslReactorCallbackRet tunnelStreamDefaultMsgCallback( RsslTunnelStream* , RsslTunnelStreamMsgEvent* );
+	static RsslReactorCallbackRet tunnelStreamDefaultMsgCallback( RsslTunnelStream*, RsslTunnelStreamMsgEvent* );
 
-	static RsslReactorCallbackRet tunnelStreamQueueMsgCallback( RsslTunnelStream* , RsslTunnelStreamQueueMsgEvent* );
+	static RsslReactorCallbackRet tunnelStreamQueueMsgCallback( RsslTunnelStream*, RsslTunnelStreamQueueMsgEvent* );
 
 	OmmConsumerImpl( const OmmConsumerConfig& );
 
-	OmmConsumerImpl( const OmmConsumerConfig& , OmmConsumerErrorClient& );
+	OmmConsumerImpl( const OmmConsumerConfig&, OmmConsumerErrorClient& );
 
 	virtual ~OmmConsumerImpl();
 
-	UInt64 registerClient( const ReqMsg& , OmmConsumerClient& , void* closure = 0, UInt64 parentHandle = 0 );
+	UInt64 registerClient( const ReqMsg&, OmmConsumerClient&, void* closure = 0, UInt64 parentHandle = 0 );
 
-	UInt64 registerClient( const TunnelStreamRequest& , OmmConsumerClient& , void* closure = 0 );
+	UInt64 registerClient( const TunnelStreamRequest&, OmmConsumerClient&, void* closure = 0 );
 
 	Int64 dispatch( Int64 timeOut = 0 );
+
 	void addSocket( RsslSocket );
+
 	void removeSocket( RsslSocket );
-	void downloadDictionary();
-	void downloadDirectory();
+
+	void loadDictionary();
+
+	void loadDirectory();
+
 	void setRsslReactorChannelRole( RsslReactorChannelRole& );
+
+	void createDictionaryCallbackClient( DictionaryCallbackClient*&, OmmBaseImpl& );
+
+	void createDirectoryCallbackClient( DirectoryCallbackClient*&, OmmBaseImpl& );
+
+	void processChannelEvent( RsslReactorChannelEvent* );
 
 private :
 
-	void uninitialize( bool caughtExcep = false );
+	void readCustomConfig( EmaConfigImpl* );
+
 	OmmConsumerImpl( const OmmConsumerImpl& );
 	OmmConsumerImpl& operator=( const OmmConsumerImpl& );
 
-	OmmClient< OmmConsumerClient >* _theClient;
-	OmmConsumerActiveConfig _activeConfig;
-	OmmConsumerErrorClient* _ommConsumerErrorClient;
+	bool isApiDispatching() const;
 
+	OmmConsumerActiveConfig			_activeConfig;
+	OmmConsumerErrorClient*			_ommConsumerErrorClient;
 };
 
-}}}
+}
+
+}
+
+}
 
 #endif // __thomsonreuters_ema_access_OmmConsumerImpl_h

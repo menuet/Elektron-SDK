@@ -11,7 +11,7 @@
 
 #ifdef WIN32
 #define USING_SELECT
-#else  // todo: Solaris 10 will use USING_POLL
+#else
 #define USING_POLL
 #define USING_PPOLL
 #endif
@@ -30,8 +30,8 @@
 #include "TimeOut.h"
 
 #include "ActiveConfig.h"
-#include "UserErrorHandler.h"
-#include "OmmImplMap.h"
+#include "ErrorClientHandler.h"
+#include "InstanceMap.h"
 #include "OmmException.h"
 
 namespace thomsonreuters {
@@ -53,160 +53,183 @@ class OmmBaseImpl : public Thread
 {
 public :
 
-  static RsslReactorCallbackRet channelCallback( RsslReactor* , RsslReactorChannel* , RsslReactorChannelEvent* );
-  static RsslReactorCallbackRet loginCallback( RsslReactor* , RsslReactorChannel* , RsslRDMLoginMsgEvent* );
+	static RsslReactorCallbackRet channelCallback( RsslReactor*, RsslReactorChannel*, RsslReactorChannelEvent* );
 
-  static RsslReactorCallbackRet directoryCallback( RsslReactor* , RsslReactorChannel* , RsslRDMDirectoryMsgEvent* );
+	static RsslReactorCallbackRet loginCallback( RsslReactor*, RsslReactorChannel*, RsslRDMLoginMsgEvent* );
 
-  static RsslReactorCallbackRet dictionaryCallback( RsslReactor* , RsslReactorChannel* , RsslRDMDictionaryMsgEvent* );
+	static RsslReactorCallbackRet directoryCallback( RsslReactor*, RsslReactorChannel*, RsslRDMDirectoryMsgEvent* );
 
-  static RsslReactorCallbackRet itemCallback( RsslReactor* , RsslReactorChannel* , RsslMsgEvent* );
+	static RsslReactorCallbackRet dictionaryCallback( RsslReactor*, RsslReactorChannel*, RsslRDMDictionaryMsgEvent* );
 
-  static RsslReactorCallbackRet channelOpenCallback( RsslReactor* , RsslReactorChannel* , RsslReactorChannelEvent* );
+	static RsslReactorCallbackRet itemCallback( RsslReactor*, RsslReactorChannel*, RsslMsgEvent* );
 
-  virtual const EmaString& getUserName() const;
+	static RsslReactorCallbackRet channelOpenCallback( RsslReactor*, RsslReactorChannel*, RsslReactorChannelEvent* );
 
-  virtual void reissue( const ReqMsg&, UInt64 );
+	virtual const EmaString& getInstanceName() const;
 
-  virtual void submit( const GenericMsg&, UInt64 ); 
+	virtual void reissue( const ReqMsg&, UInt64 );
 
-  virtual void submit( const PostMsg&, UInt64 handle = 0 ); 
+	virtual void submit( const GenericMsg&, UInt64 );
 
-  virtual void unregister( UInt64 handle );
+	virtual void submit( const PostMsg&, UInt64 handle = 0 );
 
-  virtual void addSocket( RsslSocket ) = 0;
+	virtual void unregister( UInt64 handle );
 
-  virtual void removeSocket( RsslSocket ) = 0;
+	virtual void addSocket( RsslSocket ) = 0;
 
-  void closeChannel( RsslReactorChannel* );
+	virtual void removeSocket( RsslSocket ) = 0;
 
-  enum ImplState {
-    NotInitializedEnum = 0,
-    RsslInitilizedEnum,
-    ReactorInitializedEnum,
-    RsslChannelDownEnum,
-    RsslChannelUpEnum,
-    LoginStreamOpenSuspectEnum,
-    LoginStreamOpenOkEnum,
-    LoginStreamClosedEnum,
-    DirectoryStreamOpenSuspectEnum,
-    DirectoryStreamOpenOkEnum
-  };
+	void closeChannel( RsslReactorChannel* );
 
-  void setState( ImplState state );
+	enum ImplState
+	{
+		NotInitializedEnum = 0,
+		RsslInitilizedEnum,
+		ReactorInitializedEnum,
+		RsslChannelDownEnum,
+		RsslChannelUpEnum,
+		RsslChannelUpStreamNotOpenEnum,
+		LoginStreamOpenSuspectEnum,
+		LoginStreamOpenOkEnum,
+		LoginStreamClosedEnum,
+		DirectoryStreamOpenSuspectEnum,
+		DirectoryStreamOpenOkEnum
+	};
 
-  void setDispatchInternalMsg();
+	void setState( ImplState state );
 
-  ItemCallbackClient& getItemCallbackClient();
+	void setDispatchInternalMsg();
 
-  DictionaryCallbackClient& getDictionaryCallbackClient();
+	ItemCallbackClient& getItemCallbackClient();
 
-  DirectoryCallbackClient& getDirectoryCallbackClient();
+	DictionaryCallbackClient& getDictionaryCallbackClient();
 
-  LoginCallbackClient& getLoginCallbackClient();
+	DirectoryCallbackClient& getDirectoryCallbackClient();
 
-  ChannelCallbackClient& getChannelCallbackClient();
+	LoginCallbackClient& getLoginCallbackClient();
 
-  OmmLoggerClient& getOmmLoggerClient();
+	ChannelCallbackClient& getChannelCallbackClient();
 
-  ActiveConfig& getActiveConfig();
+	OmmLoggerClient& getOmmLoggerClient();
 
-  UserErrorHandler& getUserErrorHandler() { return *userErrorHandler; }
+	ActiveConfig& getActiveConfig();
 
-  bool hasUserErrorHandler() { return userErrorHandler != 0; }
+	ErrorClientHandler& getErrorClientHandler();
 
-  EmaList< TimeOut* > & getTimeOutList() { return theTimeOuts; }
-  Mutex & getTimeOutMutex() { return _timeOutLock; }
-  void installTimeOut() { pipeWrite(); }
+	bool hasErrorClientHandler() const;
 
-  virtual void downloadDictionary() {}
-  virtual void downloadDirectory() {}
-  virtual void setRsslReactorChannelRole( RsslReactorChannelRole& ) = 0;
+	EmaList< TimeOut* >& getTimeOutList();
 
+	Mutex& getTimeOutMutex();
 
+	void installTimeOut();
+
+	virtual void loadDictionary() = 0;
+
+	virtual void loadDirectory() = 0;
+
+	virtual void setRsslReactorChannelRole( RsslReactorChannelRole& ) = 0;
+
+	virtual void createDictionaryCallbackClient( DictionaryCallbackClient*&, OmmBaseImpl& ) = 0;
+
+	virtual void createDirectoryCallbackClient( DirectoryCallbackClient*&, OmmBaseImpl& ) = 0;
+
+	virtual void processChannelEvent( RsslReactorChannelEvent* ) = 0;
+
+	void handleIue( const EmaString& );
+
+	void handleIue( const char* );
+
+	void handleIhe( UInt64 , const EmaString& );
+
+	void handleIhe( UInt64 , const char* );
+
+	void handleMee( const char* );
 
 protected:
 
-  template<class T> friend class OmmImplMap;
+	template<class T> friend class InstanceMap;
 
-  OmmBaseImpl( ActiveConfig& );
-  OmmBaseImpl( ActiveConfig&, OmmConsumerErrorClient& );
-  OmmBaseImpl( ActiveConfig&, OmmNiProviderErrorClient& );
-  virtual ~OmmBaseImpl();
+	OmmBaseImpl( ActiveConfig& );
+	OmmBaseImpl( ActiveConfig&, OmmConsumerErrorClient& );
+	OmmBaseImpl( ActiveConfig&, OmmProviderErrorClient& );
+	virtual ~OmmBaseImpl();
 
-  void initialize( EmaConfigImpl* );
+	void initialize( EmaConfigImpl* );
 
-  void uninitialize( bool caughtException = false );
+	void uninitialize( bool caughtException = false );
 
-  void readConfig( EmaConfigImpl* );
+	void readConfig( EmaConfigImpl* );
 
-  ChannelConfig* readChannelConfig( EmaConfigImpl*, const EmaString& );
+	virtual void readCustomConfig( EmaConfigImpl* ) = 0;
 
-  bool readReliableMcastConfig( EmaConfigImpl*, const EmaString&, ReliableMcastChannelConfig *, EmaString& );
+	ChannelConfig* readChannelConfig( EmaConfigImpl*, const EmaString& );
 
-  void useDefaultConfigValues( const EmaString &, const EmaString &, const EmaString & );
+	bool readReliableMcastConfig( EmaConfigImpl*, const EmaString&, ReliableMcastChannelConfig*, EmaString& );
 
-  void setAtExit();
+	void useDefaultConfigValues( const EmaString&, const EmaString&, const EmaString& );
 
-  void run();
+	void setAtExit();
 
-  void cleanUp();
+	void run();
 
-  int runLog( void*, const char*, unsigned int );
+	void cleanUp();
 
-  void pipeWrite();
+	int runLog( void*, const char*, unsigned int );
 
-  void pipeRead();
+	void pipeWrite();
 
-  bool rsslReactorDispatchLoop( Int64 timeOut, UInt32 count );
+	void pipeRead();
 
-  static void terminateIf( void * );
+	bool rsslReactorDispatchLoop( Int64 timeOut, UInt32 count );
 
-  static void notifyUserErrorHandler( const OmmException&, UserErrorHandler& );
+	static void terminateIf( void* );
 
-  ActiveConfig& _activeConfig;
+	static void notifErrorClientHandler( const OmmException&, ErrorClientHandler& );
+
+	ActiveConfig&	_activeConfig;
 
 #ifdef USING_SELECT
-  fd_set							_readFds;
-  fd_set							_exceptFds;
+	fd_set			_readFds;
+	fd_set			_exceptFds;
 #endif
 
 #ifdef USING_POLL
-  pollfd*	_eventFds;
-  nfds_t	_eventFdsCount;
-  nfds_t	_eventFdsCapacity;
-  int     pipeReadEventFdsIdx;
-  void removeFd( int );
-  int addFd( int, short );
+	pollfd*			_eventFds;
+	nfds_t			_eventFdsCount;
+	nfds_t			_eventFdsCapacity;
+	int				_pipeReadEventFdsIdx;
+
+	void removeFd( int );
+	int addFd( int, short );
 #endif
 
-  Mutex _userLock;
-  Mutex							_pipeLock;
-  Mutex							_timeOutLock;
-  RsslErrorInfo					_reactorDispatchErrorInfo;
-  RsslRet							_reactorRetCode;
-  ImplState				_state;
-  RsslReactor*					_pRsslReactor;
-  ChannelCallbackClient*			_pChannelCallbackClient;
-  LoginCallbackClient*			_pLoginCallbackClient;
-  DirectoryCallbackClient*		_pDirectoryCallbackClient;
-  DictionaryCallbackClient*		_pDictionaryCallbackClient;
-  ItemCallbackClient*				_pItemCallbackClient;
-  OmmLoggerClient*				_pLoggerClient;
-  Pipe							_pipe;
-  UInt32							_pipeWriteCount;
-  bool							_dispatchInternalMsg;
-  bool							_atExit;
-  bool							_eventTimedOut;
-  UserErrorHandler* userErrorHandler;
-
-  EmaList< TimeOut* > theTimeOuts;
+	Mutex						_userLock;
+	Mutex						_pipeLock;
+	Mutex						_timeOutLock;
+	RsslErrorInfo				_reactorDispatchErrorInfo;
+	RsslRet						_reactorRetCode;
+	ImplState					_state;
+	RsslReactor*				_pRsslReactor;
+	ChannelCallbackClient*		_pChannelCallbackClient;
+	LoginCallbackClient*		_pLoginCallbackClient;
+	DirectoryCallbackClient*	_pDirectoryCallbackClient;
+	DictionaryCallbackClient*	_pDictionaryCallbackClient;
+	ItemCallbackClient*			_pItemCallbackClient;
+	OmmLoggerClient*			_pLoggerClient;
+	Pipe						_pipe;
+	UInt32						_pipeWriteCount;
+	bool						_dispatchInternalMsg;
+	bool						_atExit;
+	bool						_eventTimedOut;
+	ErrorClientHandler*			_pErrorClientHandler;
+	EmaList< TimeOut* >			_theTimeOuts;
 
 private:
 
-  OmmBaseImpl( const OmmBaseImpl& );
-  OmmBaseImpl& operator=( const OmmBaseImpl& );
-
+	OmmBaseImpl( const OmmBaseImpl& );
+	OmmBaseImpl& operator=( const OmmBaseImpl& );
+	virtual bool isApiDispatching() const = 0;
 };
 
 }

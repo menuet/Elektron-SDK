@@ -26,8 +26,8 @@ public :
 	virtual ~OmmConsumerActiveConfig();
 
 	void clear();
-	
-	EmaString			consumerName;
+
+	OmmConsumerConfig::OperationModel		operationModel;
 };
 
 }

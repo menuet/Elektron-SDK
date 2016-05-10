@@ -6,21 +6,6 @@
  *|-----------------------------------------------------------------------------
  */
 
-#ifdef WIN32
-#define EMA_COMPONENT_VER_PLATFORM ".win "
-#else
-#define EMA_COMPONENT_VER_PLATFORM ".linux "
-#endif
-
-#ifdef __EMA_STATIC_BUILD__
-#define EMA_LINK_TYPE "Static"
-#else
-#define EMA_LINK_TYPE "Shared Library"
-#endif
-
-#define EMA "ema"
-#define COMPILE_BITS_STR "64-bit "
-
 #include "ChannelCallbackClient.h"
 #include "LoginCallbackClient.h"
 #include "DirectoryCallbackClient.h"
@@ -30,21 +15,21 @@
 #include "StreamId.h"
 #include "../EmaVersion.h"
 
+#include <new>
+
 using namespace thomsonreuters::ema::access;
 
 const EmaString ChannelCallbackClient::_clientName( "ChannelCallbackClient" );
-
-Int32 Channel::nextStreamId(4);
-EmaList< StreamId* > Channel::recoveredStreamIds;
 
 Channel* Channel::create( OmmBaseImpl& ommBaseImpl, const EmaString& name , RsslReactor* pRsslReactor )
 {
 	Channel* pChannel = 0;
 
-	try {
+	try
+	{
 		pChannel = new Channel( name, pRsslReactor );
 	}
-	catch( std::bad_alloc ) {}
+	catch ( std::bad_alloc ) {}
 
 	if ( !pChannel )
 	{
@@ -68,16 +53,19 @@ void Channel::destroy( Channel*& pChannel )
 }
 
 Channel::Channel( const EmaString& name, RsslReactor* pRsslReactor ) :
- _name( name ),
- _pRsslReactor( pRsslReactor ),
- _toString(),
- _rsslSocket( 0 ),
- _pRsslChannel( 0 ),
- _state( ChannelDownEnum ),
- _pLogin( 0 ),
- _pDictionary( 0 ),
- _directoryList(),
- _toStringSet( false )
+	_name( name ),
+	_pRsslReactor( pRsslReactor ),
+	_toString(),
+	_rsslSocket( 0 ),
+	_pRsslChannel( 0 ),
+	_state( ChannelDownEnum ),
+	_pLogin( 0 ),
+	_pDictionary( 0 ),
+	_directoryList(),
+	_toStringSet( false ),
+	_nextStreamId( 4 ),
+	_recoveredStreamIds(),
+	_streamIdMutex()
 {
 }
 
@@ -112,7 +100,7 @@ Channel::ChannelState Channel::getChannelState() const
 
 RsslSocket Channel::getRsslSocket() const
 {
-	return _rsslSocket; 
+	return _rsslSocket;
 }
 
 RsslReactorChannel* Channel::getRsslChannel() const
@@ -173,29 +161,47 @@ Channel& Channel::setDictionary( Dictionary* pDictionary )
 
 Int32 Channel::getNextStreamId( UInt32 numberOfBatchItems )
 {
+	Int32 retVal;
+
 	if ( numberOfBatchItems )
 	{
-		Int32 retVal ( ++nextStreamId );
-		nextStreamId += numberOfBatchItems;
-		return retVal;
-	}
-
-	if ( recoveredStreamIds.empty() ) {
-		return ++nextStreamId;
+		_streamIdMutex.lock();
+		retVal = ++_nextStreamId;
+		_nextStreamId += numberOfBatchItems;
+		_streamIdMutex.unlock();
 	}
 	else
 	{
-		StreamId* tmp( recoveredStreamIds.pop_back() );
-		UInt32 retVal( (*tmp)() );
-		free( tmp );
-		return retVal;
-	}	
+		_streamIdMutex.lock();
+		if ( _recoveredStreamIds.empty() )
+		{
+			retVal = ++_nextStreamId;
+			_streamIdMutex.unlock();
+		}
+		else
+		{
+			StreamId* tmp( _recoveredStreamIds.pop_back() );
+			_streamIdMutex.unlock();
+			retVal = ( *tmp )();
+			delete tmp;
+		}
+	}
+	return retVal;
 }
 
 void Channel::returnStreamId( Int32 streamId )
 {
-	StreamId* sId( new StreamId( streamId ) );
-	recoveredStreamIds.push_back( sId );
+	try
+	{
+		StreamId* sId = new StreamId( streamId );
+		_streamIdMutex.lock();
+		_recoveredStreamIds.push_back( sId );
+		_streamIdMutex.unlock();
+	}
+	catch ( std::bad_alloc )
+	{
+		throwMeeException( "Failed to allocate memory in Channel::returnStreamId()" );
+	}
 }
 
 const EmaString& Channel::toString() const
@@ -204,9 +210,9 @@ const EmaString& Channel::toString() const
 	{
 		_toStringSet = true;
 		_toString.set( "\tRsslReactorChannel name " ).append( _name ).append( CR )
-			.append( "\tRsslReactor " ).append( ptrToStringAsHex( _pRsslReactor ) ).append( CR )
-			.append( "\tRsslReactorChannel " ).append( ptrToStringAsHex( _pRsslChannel ) ).append( CR )
-			.append( "\tRsslSocket " ).append( (UInt64)_rsslSocket );
+		.append( "\tRsslReactor " ).append( ptrToStringAsHex( _pRsslReactor ) ).append( CR )
+		.append( "\tRsslReactorChannel " ).append( ptrToStringAsHex( _pRsslChannel ) ).append( CR )
+		.append( "\tRsslSocket " ).append( ( UInt64 )_rsslSocket );
 
 		if ( ! _directoryList.empty() )
 		{
@@ -214,10 +220,10 @@ const EmaString& Channel::toString() const
 			Directory* directory = _directoryList.front();
 			while ( directory )
 			{
-                _toString.append( directory->getName() ).append( " " );
+				_toString.append( directory->getName() ).append( " " );
 				directory = directory->next();
 			}
-            _toString.append( CR );
+			_toString.append( CR );
 		}
 	}
 	return _toString;
@@ -284,7 +290,7 @@ RsslReactorChannel* ChannelList::operator[]( UInt32 idx )
 			channel = channel->next();
 		}
 	}
-	
+
 	return 0;
 }
 
@@ -300,7 +306,7 @@ Channel* ChannelList::getChannel( const EmaString& name ) const
 		else
 			channel = channel->next();
 	}
-	
+
 	return 0;
 }
 
@@ -316,7 +322,7 @@ Channel* ChannelList::getChannel( const RsslReactorChannel* pRsslChannel ) const
 		else
 			channel = channel->next();
 	}
-	
+
 	return 0;
 }
 
@@ -332,8 +338,13 @@ Channel* ChannelList::getChannel( RsslSocket rsslsocket ) const
 		else
 			channel = channel->next();
 	}
-	
+
 	return 0;
+}
+
+Channel* ChannelList::front() const
+{
+	return _list.front();
 }
 
 void ChannelCallbackClient::closeChannels()
@@ -347,15 +358,15 @@ void ChannelCallbackClient::closeChannels()
 }
 
 ChannelCallbackClient::ChannelCallbackClient( OmmBaseImpl& ommBaseImpl, RsslReactor* pRsslReactor ) :
- _channelList(),
- _ommBaseImpl( ommBaseImpl ),
- _pRsslReactor( pRsslReactor )
+	_channelList(),
+	_ommBaseImpl( ommBaseImpl ),
+	_pRsslReactor( pRsslReactor )
 {
- 	if ( OmmLoggerClient::VerboseEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
+	if ( OmmLoggerClient::VerboseEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
 	{
 		_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::VerboseEnum, "Created ChannelCallbackClient" );
 	}
- }
+}
 
 ChannelCallbackClient::~ChannelCallbackClient()
 {
@@ -369,7 +380,8 @@ ChannelCallbackClient* ChannelCallbackClient::create( OmmBaseImpl& ommBaseImpl, 
 {
 	ChannelCallbackClient* pClient = 0;
 
-	try {
+	try
+	{
 		pClient = new ChannelCallbackClient( ommBaseImpl, pRsslReactor );
 	}
 	catch ( std::bad_alloc ) {}
@@ -416,93 +428,93 @@ void ChannelCallbackClient::channelParametersToString( ChannelConfig* pChannelCf
 		compType.set( "Unknown Compression Type" );
 		break;
 	}
-	switch(pChannelCfg->connectionType)
+	switch ( pChannelCfg->connectionType )
 	{
-		case RSSL_CONN_TYPE_SOCKET:
-		{
-			SocketChannelConfig  *pTempChannelCfg = static_cast<SocketChannelConfig*> (pChannelCfg);
-			strConnectionType = "RSSL_CONN_TYPE_SOCKET";
-			cfgParameters.append( "hostName " ).append( pTempChannelCfg->hostName ).append( CR )
-				.append( "port " ).append( pTempChannelCfg->serviceName ).append( CR )
-				.append( "CompressionType " ).append( compType ).append( CR )
-				.append( "tcpNodelay " ).append( (pTempChannelCfg->tcpNodelay ? "true" : "false" ) ).append( CR );
-			break;
-		}
-		case RSSL_CONN_TYPE_HTTP:
-		{
-			HttpChannelConfig  *pTempChannelCfg = static_cast<HttpChannelConfig*> (pChannelCfg);
-			strConnectionType = "RSSL_CONN_TYPE_HTTP";
-			cfgParameters.append( "hostName " ).append( pTempChannelCfg->hostName ).append( CR )
-				.append( "port " ).append( pTempChannelCfg->serviceName ).append( CR )
-				.append( "CompressionType " ).append( compType ).append( CR )
-				.append( "tcpNodelay " ).append( (pTempChannelCfg->tcpNodelay ? "true" : "false" ) ).append( CR )
-				.append("ObjectName ").append(pTempChannelCfg->objectName).append( CR );
-			break;
-		}
-		case RSSL_CONN_TYPE_ENCRYPTED:
-		{
-			EncryptedChannelConfig  *pTempChannelCfg = static_cast<EncryptedChannelConfig*> (pChannelCfg);
-			strConnectionType = "RSSL_CONN_TYPE_ENCRYPTED";
-			cfgParameters.append( "hostName " ).append( pTempChannelCfg->hostName ).append( CR )
-				.append( "port " ).append( pTempChannelCfg->serviceName ).append( CR )
-				.append( "CompressionType " ).append( compType ).append( CR )
-				.append( "tcpNodelay " ).append( (pTempChannelCfg->tcpNodelay ? "true" : "false" ) ).append( CR )
-				.append("ObjectName ").append(pTempChannelCfg->objectName).append( CR );
-			break;
-		}
-		case RSSL_CONN_TYPE_RELIABLE_MCAST:
-		{
-			ReliableMcastChannelConfig  *pTempChannelCfg = static_cast<ReliableMcastChannelConfig*> (pChannelCfg);
-			strConnectionType = "RSSL_CONN_TYPE_MCAST";
-			cfgParameters.append( "RecvAddress " ).append( pTempChannelCfg->recvAddress ).append( CR )
-				.append( "RecvPort " ).append( pTempChannelCfg->recvServiceName ).append( CR )
-				.append( "SendAddress " ).append( pTempChannelCfg->sendAddress ).append( CR )
-				.append( "SendPort " ).append( pTempChannelCfg->sendServiceName ).append( CR )
-				.append("UnicastPort ").append( pTempChannelCfg->unicastServiceName).append( CR )
-				.append("HsmInterface ").append( pTempChannelCfg->hsmInterface).append( CR )
-				.append("HsmMultAddress ").append( pTempChannelCfg->hsmMultAddress).append( CR )
-				.append("HsmPort ").append( pTempChannelCfg->hsmPort).append( CR )
-				.append("HsmInterval ").append( pTempChannelCfg->hsmInterval).append( CR )
-				.append("tcpControlPort ").append( pTempChannelCfg->tcpControlPort).append( CR )
-				.append( "DisconnectOnGap " ).append( ( pTempChannelCfg->disconnectOnGap ? "true" : "false" ) ).append( CR )
-				.append("PacketTTL ").append( pTempChannelCfg->packetTTL).append( CR )
-				.append( "ndata " ).append( pTempChannelCfg->ndata ).append( CR )
-				.append( "nmissing " ).append( pTempChannelCfg->nmissing ).append( CR )
-				.append( "nrreq " ).append( pTempChannelCfg->nrreq ).append( CR )
-				.append( "tdata " ).append( pTempChannelCfg->tdata ).append( CR )
-				.append( "trreq " ).append( pTempChannelCfg->trreq ).append( CR )
-				.append( "twait " ).append( pTempChannelCfg->twait ).append( CR )
-				.append( "tbchold " ).append( pTempChannelCfg->tbchold ).append( CR )
-				.append( "tpphold " ).append( pTempChannelCfg->tpphold ).append( CR )
-				.append( "pktPoolLimitHigh " ).append( pTempChannelCfg->pktPoolLimitHigh ).append( CR )
-				.append( "pktPoolLimitLow " ).append( pTempChannelCfg->pktPoolLimitLow ).append( CR )
-				.append( "userQLimit " ).append( pTempChannelCfg->userQLimit ).append( CR );
-
-			break;
-		}
-		default:
-		{
-			strConnectionType = "Invalid ChannelType: ";
-			strConnectionType.append(pChannelCfg->connectionType)
-				.append(" ");
-			bValidChType = false;
-			break;
-		}
+	case RSSL_CONN_TYPE_SOCKET:
+	{
+		SocketChannelConfig* pTempChannelCfg = static_cast<SocketChannelConfig*>( pChannelCfg );
+		strConnectionType = "RSSL_CONN_TYPE_SOCKET";
+		cfgParameters.append( "hostName " ).append( pTempChannelCfg->hostName ).append( CR )
+		.append( "port " ).append( pTempChannelCfg->serviceName ).append( CR )
+		.append( "CompressionType " ).append( compType ).append( CR )
+		.append( "tcpNodelay " ).append( ( pTempChannelCfg->tcpNodelay ? "true" : "false" ) ).append( CR );
+		break;
 	}
-	
-	strChannelParams.append( strConnectionType ).append( CR )
-		.append( "Channel name ").append( pChannelCfg->name ).append( CR )
-		.append( "Consumer Name " ).append( _ommBaseImpl.getUserName() ).append( CR );
+	case RSSL_CONN_TYPE_HTTP:
+	{
+		HttpChannelConfig* pTempChannelCfg = static_cast<HttpChannelConfig*>( pChannelCfg );
+		strConnectionType = "RSSL_CONN_TYPE_HTTP";
+		cfgParameters.append( "hostName " ).append( pTempChannelCfg->hostName ).append( CR )
+		.append( "port " ).append( pTempChannelCfg->serviceName ).append( CR )
+		.append( "CompressionType " ).append( compType ).append( CR )
+		.append( "tcpNodelay " ).append( ( pTempChannelCfg->tcpNodelay ? "true" : "false" ) ).append( CR )
+		.append( "ObjectName " ).append( pTempChannelCfg->objectName ).append( CR );
+		break;
+	}
+	case RSSL_CONN_TYPE_ENCRYPTED:
+	{
+		EncryptedChannelConfig* pTempChannelCfg = static_cast<EncryptedChannelConfig*>( pChannelCfg );
+		strConnectionType = "RSSL_CONN_TYPE_ENCRYPTED";
+		cfgParameters.append( "hostName " ).append( pTempChannelCfg->hostName ).append( CR )
+		.append( "port " ).append( pTempChannelCfg->serviceName ).append( CR )
+		.append( "CompressionType " ).append( compType ).append( CR )
+		.append( "tcpNodelay " ).append( ( pTempChannelCfg->tcpNodelay ? "true" : "false" ) ).append( CR )
+		.append( "ObjectName " ).append( pTempChannelCfg->objectName ).append( CR );
+		break;
+	}
+	case RSSL_CONN_TYPE_RELIABLE_MCAST:
+	{
+		ReliableMcastChannelConfig* pTempChannelCfg = static_cast<ReliableMcastChannelConfig*>( pChannelCfg );
+		strConnectionType = "RSSL_CONN_TYPE_MCAST";
+		cfgParameters.append( "RecvAddress " ).append( pTempChannelCfg->recvAddress ).append( CR )
+		.append( "RecvPort " ).append( pTempChannelCfg->recvServiceName ).append( CR )
+		.append( "SendAddress " ).append( pTempChannelCfg->sendAddress ).append( CR )
+		.append( "SendPort " ).append( pTempChannelCfg->sendServiceName ).append( CR )
+		.append( "UnicastPort " ).append( pTempChannelCfg->unicastServiceName ).append( CR )
+		.append( "HsmInterface " ).append( pTempChannelCfg->hsmInterface ).append( CR )
+		.append( "HsmMultAddress " ).append( pTempChannelCfg->hsmMultAddress ).append( CR )
+		.append( "HsmPort " ).append( pTempChannelCfg->hsmPort ).append( CR )
+		.append( "HsmInterval " ).append( pTempChannelCfg->hsmInterval ).append( CR )
+		.append( "tcpControlPort " ).append( pTempChannelCfg->tcpControlPort ).append( CR )
+		.append( "DisconnectOnGap " ).append( ( pTempChannelCfg->disconnectOnGap ? "true" : "false" ) ).append( CR )
+		.append( "PacketTTL " ).append( pTempChannelCfg->packetTTL ).append( CR )
+		.append( "ndata " ).append( pTempChannelCfg->ndata ).append( CR )
+		.append( "nmissing " ).append( pTempChannelCfg->nmissing ).append( CR )
+		.append( "nrreq " ).append( pTempChannelCfg->nrreq ).append( CR )
+		.append( "tdata " ).append( pTempChannelCfg->tdata ).append( CR )
+		.append( "trreq " ).append( pTempChannelCfg->trreq ).append( CR )
+		.append( "twait " ).append( pTempChannelCfg->twait ).append( CR )
+		.append( "tbchold " ).append( pTempChannelCfg->tbchold ).append( CR )
+		.append( "tpphold " ).append( pTempChannelCfg->tpphold ).append( CR )
+		.append( "pktPoolLimitHigh " ).append( pTempChannelCfg->pktPoolLimitHigh ).append( CR )
+		.append( "pktPoolLimitLow " ).append( pTempChannelCfg->pktPoolLimitLow ).append( CR )
+		.append( "userQLimit " ).append( pTempChannelCfg->userQLimit ).append( CR );
 
-	if(bValidChType)
+		break;
+	}
+	default:
+	{
+		strConnectionType = "Invalid ChannelType: ";
+		strConnectionType.append( pChannelCfg->connectionType )
+		.append( " " );
+		bValidChType = false;
+		break;
+	}
+	}
+
+	strChannelParams.append( strConnectionType ).append( CR )
+	.append( "Channel name " ).append( pChannelCfg->name ).append( CR )
+	.append( "Consumer Name " ).append( _ommBaseImpl.getInstanceName() ).append( CR );
+
+	if ( bValidChType )
 	{
 		strChannelParams.append( "RsslReactor " ).append( ptrToStringAsHex( _pRsslReactor ) ).append( CR )
-			.append( "InterfaceName " ).append( pChannelCfg->interfaceName ).append( CR )
-			.append( cfgParameters)
-			.append( "reconnectAttemptLimit " ).append( pChannelCfg->reconnectAttemptLimit ).append( CR )
-			.append( "reconnectMinDelay " ).append( pChannelCfg->reconnectMinDelay ).append( " msec" ).append( CR )
-			.append( "reconnectMaxDelay " ).append( pChannelCfg->reconnectMaxDelay).append( " msec" ).append( CR )					
-			.append( "connectionPingTimeout " ).append( pChannelCfg->connectionPingTimeout ).append( " msec" ).append( CR );
+		.append( "InterfaceName " ).append( pChannelCfg->interfaceName ).append( CR )
+		.append( cfgParameters )
+		.append( "reconnectAttemptLimit " ).append( pChannelCfg->reconnectAttemptLimit ).append( CR )
+		.append( "reconnectMinDelay " ).append( pChannelCfg->reconnectMinDelay ).append( " msec" ).append( CR )
+		.append( "reconnectMaxDelay " ).append( pChannelCfg->reconnectMaxDelay ).append( " msec" ).append( CR )
+		.append( "connectionPingTimeout " ).append( pChannelCfg->connectionPingTimeout ).append( " msec" ).append( CR );
 	}
 }
 
@@ -511,19 +523,36 @@ void ChannelCallbackClient::initialize( RsslRDMLoginRequest* loginRequest, RsslR
 	RsslReactorChannelRole role;
 	_ommBaseImpl.setRsslReactorChannelRole( role );
 
-	EmaString componentVersionInfo(EMA);
-	componentVersionInfo.append(NEWVERSTRING);
-	componentVersionInfo.append(EMA_COMPONENT_VER_PLATFORM);
-	componentVersionInfo.append(COMPILE_BITS_STR);
-	componentVersionInfo.append(EMA_LINK_TYPE);
-	componentVersionInfo.append("(");
-	componentVersionInfo.append(BLDTYPE);
-	componentVersionInfo.append(")");
-		
-	EmaVector< ChannelConfig* > &activeConfigChannelSet = _ommBaseImpl.getActiveConfig().configChannelSet;
-	unsigned int channelCfgSetLastIndex = activeConfigChannelSet.size() - 1;
+	EmaString componentVersionInfo( COMPONENT_NAME );
+	componentVersionInfo.append( NEWVERSTRING );
+	componentVersionInfo.append( EMA_COMPONENT_VER_PLATFORM );
+	componentVersionInfo.append( COMPILE_BITS_STR );
+	componentVersionInfo.append( emaComponentLinkType );
+	componentVersionInfo.append( "(" );
+	componentVersionInfo.append( emaComponentBldtype );
+	componentVersionInfo.append( ")" );
 
-	RsslReactorConnectInfo      *reactorConnectInfo = new RsslReactorConnectInfo[activeConfigChannelSet.size()];
+	EmaVector< ChannelConfig* >& activeConfigChannelSet = _ommBaseImpl.getActiveConfig().configChannelSet;
+	UInt32 channelCfgSetLastIndex = activeConfigChannelSet.size() - 1;
+
+	RsslReactorConnectInfo* reactorConnectInfo = 0;
+
+	try
+	{
+		reactorConnectInfo = new RsslReactorConnectInfo[activeConfigChannelSet.size()];
+	}
+	catch ( std::bad_alloc ) {}
+
+	if ( !reactorConnectInfo )
+	{
+		const char* temp = "Failed to allocate memory in ChannelCallbackClient::initialize()";
+		if ( OmmLoggerClient::ErrorEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
+			_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::ErrorEnum, temp );
+
+		throwMeeException( temp );
+		return;
+	}
+
 	RsslReactorConnectOptions connectOpt;
 	rsslClearReactorConnectOptions( &connectOpt );
 	connectOpt.connectionCount = activeConfigChannelSet.size();
@@ -534,32 +563,31 @@ void ChannelCallbackClient::initialize( RsslRDMLoginRequest* loginRequest, RsslR
 	connectOpt.initializationTimeout = 5;
 
 	EmaString channelParams;
-	EmaString temp( "Attempt to connect using ");
-	if(connectOpt.connectionCount > 1)
-		temp = "Attempt to connect using the following list";
+	EmaString temp( "Attempt to connect using " );
+	if ( connectOpt.connectionCount > 1 )
+		temp.set( "Attempt to connect using the following list" );
 	UInt32 supportedConnectionTypeChannelCount = 0;
-	EmaString errorStrUnsupportedConnectionType("Unknown connection type. Passed in type is");
+	EmaString errorStrUnsupportedConnectionType( "Unknown connection type. Passed in type is" );
 
 	EmaString channelNames;
 
-	
-	for(unsigned int i = 0; i < connectOpt.connectionCount; ++i)
+	for ( UInt32 i = 0; i < connectOpt.connectionCount; ++i )
 	{
-		rsslClearReactorConnectInfo(&reactorConnectInfo[i]);
+		rsslClearReactorConnectInfo( &reactorConnectInfo[i] );
 
 		if ( activeConfigChannelSet[i]->connectionType == RSSL_CONN_TYPE_SOCKET   ||
-			activeConfigChannelSet[i]->connectionType == RSSL_CONN_TYPE_HTTP ||
-			activeConfigChannelSet[i]->connectionType == RSSL_CONN_TYPE_ENCRYPTED ||
-			activeConfigChannelSet[i]->connectionType == RSSL_CONN_TYPE_RELIABLE_MCAST)
+		     activeConfigChannelSet[i]->connectionType == RSSL_CONN_TYPE_HTTP ||
+		     activeConfigChannelSet[i]->connectionType == RSSL_CONN_TYPE_ENCRYPTED ||
+		     activeConfigChannelSet[i]->connectionType == RSSL_CONN_TYPE_RELIABLE_MCAST )
 		{
 			Channel* pChannel = Channel::create( _ommBaseImpl, activeConfigChannelSet[i]->name, _pRsslReactor );
 
-			reactorConnectInfo[i].rsslConnectOptions.userSpecPtr = (void*)pChannel;
+			reactorConnectInfo[i].rsslConnectOptions.userSpecPtr = ( void* )pChannel;
 			activeConfigChannelSet[i]->pChannel = pChannel;
 
 			reactorConnectInfo[i].rsslConnectOptions.majorVersion = RSSL_RWF_MAJOR_VERSION;
 			reactorConnectInfo[i].rsslConnectOptions.minorVersion = RSSL_RWF_MINOR_VERSION;
-			reactorConnectInfo[i].rsslConnectOptions.protocolType = RSSL_RWF_PROTOCOL_TYPE;		
+			reactorConnectInfo[i].rsslConnectOptions.protocolType = RSSL_RWF_PROTOCOL_TYPE;
 			reactorConnectInfo[i].rsslConnectOptions.connectionType = activeConfigChannelSet[i]->connectionType;
 			reactorConnectInfo[i].rsslConnectOptions.pingTimeout = activeConfigChannelSet[i]->connectionPingTimeout;
 			reactorConnectInfo[i].rsslConnectOptions.guaranteedOutputBuffers = activeConfigChannelSet[i]->guaranteedOutputBuffers;
@@ -571,57 +599,57 @@ void ChannelCallbackClient::initialize( RsslRDMLoginRequest* loginRequest, RsslR
 			switch ( reactorConnectInfo[i].rsslConnectOptions.connectionType )
 			{
 			case RSSL_CONN_TYPE_SOCKET:
-				{
+			{
 				reactorConnectInfo[i].rsslConnectOptions.compressionType = activeConfigChannelSet[i]->compressionType;
-				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.unified.address = (char*)static_cast<SocketChannelConfig*>(activeConfigChannelSet[i])->hostName.c_str();
-				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.unified.serviceName = (char*)static_cast<SocketChannelConfig*>(activeConfigChannelSet[i])->serviceName.c_str();
-				reactorConnectInfo[i].rsslConnectOptions.tcpOpts.tcp_nodelay = static_cast<SocketChannelConfig*>(activeConfigChannelSet[i])->tcpNodelay;
-				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.unified.interfaceName = (char*)activeConfigChannelSet[i]->interfaceName.c_str();
-				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.unified.unicastServiceName = (char *) "";
+				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.unified.address = ( char* )static_cast<SocketChannelConfig*>( activeConfigChannelSet[i] )->hostName.c_str();
+				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.unified.serviceName = ( char* )static_cast<SocketChannelConfig*>( activeConfigChannelSet[i] )->serviceName.c_str();
+				reactorConnectInfo[i].rsslConnectOptions.tcpOpts.tcp_nodelay = static_cast<SocketChannelConfig*>( activeConfigChannelSet[i] )->tcpNodelay;
+				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.unified.interfaceName = ( char* )activeConfigChannelSet[i]->interfaceName.c_str();
+				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.unified.unicastServiceName = ( char* ) "";
 				break;
-				}
+			}
 			case RSSL_CONN_TYPE_ENCRYPTED:
-				{
+			{
 				reactorConnectInfo[i].rsslConnectOptions.compressionType = activeConfigChannelSet[i]->compressionType;
-				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.unified.address = (char*)static_cast<EncryptedChannelConfig*>(activeConfigChannelSet[i])->hostName.c_str();
-				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.unified.serviceName = (char*)static_cast<EncryptedChannelConfig*>(activeConfigChannelSet[i])->serviceName.c_str();
-				reactorConnectInfo[i].rsslConnectOptions.tcpOpts.tcp_nodelay = static_cast<EncryptedChannelConfig*>(activeConfigChannelSet[i])->tcpNodelay;
-				reactorConnectInfo[i].rsslConnectOptions.objectName = (char*) static_cast<EncryptedChannelConfig*>(activeConfigChannelSet[i])->objectName.c_str();
-				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.unified.interfaceName = (char*)activeConfigChannelSet[i]->interfaceName.c_str();
-				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.unified.unicastServiceName = (char *) "";
+				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.unified.address = ( char* )static_cast<EncryptedChannelConfig*>( activeConfigChannelSet[i] )->hostName.c_str();
+				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.unified.serviceName = ( char* )static_cast<EncryptedChannelConfig*>( activeConfigChannelSet[i] )->serviceName.c_str();
+				reactorConnectInfo[i].rsslConnectOptions.tcpOpts.tcp_nodelay = static_cast<EncryptedChannelConfig*>( activeConfigChannelSet[i] )->tcpNodelay;
+				reactorConnectInfo[i].rsslConnectOptions.objectName = ( char* ) static_cast<EncryptedChannelConfig*>( activeConfigChannelSet[i] )->objectName.c_str();
+				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.unified.interfaceName = ( char* )activeConfigChannelSet[i]->interfaceName.c_str();
+				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.unified.unicastServiceName = ( char* ) "";
 				break;
-				}
+			}
 			case RSSL_CONN_TYPE_HTTP:
-				{
+			{
 				reactorConnectInfo[i].rsslConnectOptions.compressionType = activeConfigChannelSet[i]->compressionType;
-				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.unified.address = (char*)static_cast<HttpChannelConfig*>(activeConfigChannelSet[i])->hostName.c_str();
-				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.unified.serviceName = (char*)static_cast<HttpChannelConfig*>(activeConfigChannelSet[i])->serviceName.c_str();
-				reactorConnectInfo[i].rsslConnectOptions.tcpOpts.tcp_nodelay = static_cast<HttpChannelConfig*>(activeConfigChannelSet[i])->tcpNodelay;
-				reactorConnectInfo[i].rsslConnectOptions.objectName = (char*) static_cast<HttpChannelConfig*>(activeConfigChannelSet[i])->objectName.c_str();
-				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.unified.interfaceName = (char*)activeConfigChannelSet[i]->interfaceName.c_str();
-				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.unified.unicastServiceName = (char *) "";
+				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.unified.address = ( char* )static_cast<HttpChannelConfig*>( activeConfigChannelSet[i] )->hostName.c_str();
+				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.unified.serviceName = ( char* )static_cast<HttpChannelConfig*>( activeConfigChannelSet[i] )->serviceName.c_str();
+				reactorConnectInfo[i].rsslConnectOptions.tcpOpts.tcp_nodelay = static_cast<HttpChannelConfig*>( activeConfigChannelSet[i] )->tcpNodelay;
+				reactorConnectInfo[i].rsslConnectOptions.objectName = ( char* ) static_cast<HttpChannelConfig*>( activeConfigChannelSet[i] )->objectName.c_str();
+				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.unified.interfaceName = ( char* )activeConfigChannelSet[i]->interfaceName.c_str();
+				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.unified.unicastServiceName = ( char* ) "";
 				strConnectionType = "RSSL_CONN_TYPE_HTTP";
 				break;
-				}
+			}
 			case RSSL_CONN_TYPE_RELIABLE_MCAST:
-				{
-				ReliableMcastChannelConfig *relMcastCfg = static_cast<ReliableMcastChannelConfig*>(activeConfigChannelSet[i]);
-				if(activeConfigChannelSet[i]->interfaceName.empty())
+			{
+				ReliableMcastChannelConfig* relMcastCfg = static_cast<ReliableMcastChannelConfig*>( activeConfigChannelSet[i] );
+				if ( activeConfigChannelSet[i]->interfaceName.empty() )
 					reactorConnectInfo[i].rsslConnectOptions.connectionInfo.segmented.interfaceName = 0;
-				else 
-					reactorConnectInfo[i].rsslConnectOptions.connectionInfo.segmented.interfaceName = (char*)activeConfigChannelSet[i]->interfaceName.c_str();
-				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.segmented.recvAddress = (char*) relMcastCfg->recvAddress.c_str();
-				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.segmented.recvServiceName = (char*) relMcastCfg->recvServiceName.c_str();
-				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.segmented.unicastServiceName = (char*) relMcastCfg->unicastServiceName.c_str();
-				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.segmented.sendAddress = (char*) relMcastCfg->sendAddress.c_str();
-				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.segmented.sendServiceName = (char*) relMcastCfg->sendServiceName.c_str();
+				else
+					reactorConnectInfo[i].rsslConnectOptions.connectionInfo.segmented.interfaceName = ( char* )activeConfigChannelSet[i]->interfaceName.c_str();
+				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.segmented.recvAddress = ( char* ) relMcastCfg->recvAddress.c_str();
+				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.segmented.recvServiceName = ( char* ) relMcastCfg->recvServiceName.c_str();
+				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.segmented.unicastServiceName = ( char* ) relMcastCfg->unicastServiceName.c_str();
+				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.segmented.sendAddress = ( char* ) relMcastCfg->sendAddress.c_str();
+				reactorConnectInfo[i].rsslConnectOptions.connectionInfo.segmented.sendServiceName = ( char* ) relMcastCfg->sendServiceName.c_str();
 				reactorConnectInfo[i].rsslConnectOptions.multicastOpts.disconnectOnGaps = relMcastCfg->disconnectOnGap;
-				reactorConnectInfo[i].rsslConnectOptions.multicastOpts.hsmInterface = (char *) relMcastCfg->hsmInterface.c_str();
-				reactorConnectInfo[i].rsslConnectOptions.multicastOpts.hsmMultAddress = (char *) relMcastCfg->hsmMultAddress.c_str();
-				reactorConnectInfo[i].rsslConnectOptions.multicastOpts.hsmPort = (char *) relMcastCfg->hsmPort.c_str();
+				reactorConnectInfo[i].rsslConnectOptions.multicastOpts.hsmInterface = ( char* ) relMcastCfg->hsmInterface.c_str();
+				reactorConnectInfo[i].rsslConnectOptions.multicastOpts.hsmMultAddress = ( char* ) relMcastCfg->hsmMultAddress.c_str();
+				reactorConnectInfo[i].rsslConnectOptions.multicastOpts.hsmPort = ( char* ) relMcastCfg->hsmPort.c_str();
 				reactorConnectInfo[i].rsslConnectOptions.multicastOpts.hsmInterval =  relMcastCfg->hsmInterval;
 				reactorConnectInfo[i].rsslConnectOptions.multicastOpts.packetTTL =  relMcastCfg->packetTTL;
-				reactorConnectInfo[i].rsslConnectOptions.multicastOpts.tcpControlPort = (char *) relMcastCfg->tcpControlPort.c_str();
+				reactorConnectInfo[i].rsslConnectOptions.multicastOpts.tcpControlPort = ( char* ) relMcastCfg->tcpControlPort.c_str();
 				reactorConnectInfo[i].rsslConnectOptions.multicastOpts.ndata =  relMcastCfg->ndata;
 				reactorConnectInfo[i].rsslConnectOptions.multicastOpts.nmissing =  relMcastCfg->nmissing;
 				reactorConnectInfo[i].rsslConnectOptions.multicastOpts.nrreq =  relMcastCfg->nrreq;
@@ -631,7 +659,7 @@ void ChannelCallbackClient::initialize( RsslRDMLoginRequest* loginRequest, RsslR
 				reactorConnectInfo[i].rsslConnectOptions.multicastOpts.tpphold =  relMcastCfg->tpphold;
 				reactorConnectInfo[i].rsslConnectOptions.multicastOpts.tbchold =  relMcastCfg->tbchold;
 				break;
-				}
+			}
 			default :
 				break;
 			}
@@ -641,9 +669,9 @@ void ChannelCallbackClient::initialize( RsslRDMLoginRequest* loginRequest, RsslR
 			supportedConnectionTypeChannelCount++;
 
 			channelNames += pChannel->getName();
-			if(i < channelCfgSetLastIndex)
+			if ( i < channelCfgSetLastIndex )
 			{
-				channelNames.append(", ");
+				channelNames.append( ", " );
 				activeConfigChannelSet[i]->reconnectAttemptLimit = connectOpt.reconnectAttemptLimit;
 				activeConfigChannelSet[i]->reconnectMaxDelay = connectOpt.reconnectMaxDelay;
 				activeConfigChannelSet[i]->reconnectMinDelay = connectOpt.reconnectMinDelay;
@@ -653,6 +681,8 @@ void ChannelCallbackClient::initialize( RsslRDMLoginRequest* loginRequest, RsslR
 				activeConfigChannelSet[i]->xmlTraceToMultipleFiles = activeConfigChannelSet[channelCfgSetLastIndex]->xmlTraceToMultipleFiles;
 				activeConfigChannelSet[i]->xmlTraceWrite = activeConfigChannelSet[channelCfgSetLastIndex]->xmlTraceWrite;
 				activeConfigChannelSet[i]->xmlTraceRead = activeConfigChannelSet[channelCfgSetLastIndex]->xmlTraceRead;
+				activeConfigChannelSet[i]->xmlTracePing = activeConfigChannelSet[channelCfgSetLastIndex]->xmlTracePing;
+				activeConfigChannelSet[i]->xmlTraceHex = activeConfigChannelSet[channelCfgSetLastIndex]->xmlTraceHex;
 				activeConfigChannelSet[i]->xmlTraceMaxFileSize = activeConfigChannelSet[channelCfgSetLastIndex]->xmlTraceMaxFileSize;
 				activeConfigChannelSet[i]->msgKeyInUpdates = activeConfigChannelSet[channelCfgSetLastIndex]->msgKeyInUpdates;
 			}
@@ -660,49 +690,54 @@ void ChannelCallbackClient::initialize( RsslRDMLoginRequest* loginRequest, RsslR
 			if ( OmmLoggerClient::VerboseEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
 			{
 				channelParams.clear();
-				channelParametersToString(activeConfigChannelSet[i], channelParams);
-				temp.append( CR ).append(i+1).append("] ").append(channelParams);
-					if(i == (connectOpt.connectionCount -1))
-						_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::VerboseEnum, temp );
+				channelParametersToString( activeConfigChannelSet[i], channelParams );
+				temp.append( CR ).append( i + 1 ).append( "] " ).append( channelParams );
+				if ( i == ( connectOpt.connectionCount - 1 ) )
+					_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::VerboseEnum, temp );
 			}
 		}
 		else
 		{
 			reactorConnectInfo[i].rsslConnectOptions.userSpecPtr = 0;
 			errorStrUnsupportedConnectionType.append( activeConfigChannelSet[i]->connectionType )
-			.append(" for ")
-			.append(activeConfigChannelSet[i]->name);
-			if(i < channelCfgSetLastIndex)
-				errorStrUnsupportedConnectionType.append(", ");
+			.append( " for " )
+			.append( activeConfigChannelSet[i]->name );
+			if ( i < channelCfgSetLastIndex )
+				errorStrUnsupportedConnectionType.append( ", " );
 		}
-	} 
+	}
 
-	if(supportedConnectionTypeChannelCount > 0)
+	if ( supportedConnectionTypeChannelCount > 0 )
 	{
-		connectOpt.rsslConnectOptions.userSpecPtr = (void*) activeConfigChannelSet[0]->pChannel;
+		connectOpt.rsslConnectOptions.userSpecPtr = ( void* ) activeConfigChannelSet[0]->pChannel;
 
 		RsslErrorInfo rsslErrorInfo;
-		if ( RSSL_RET_SUCCESS != rsslReactorConnect( _pRsslReactor, &connectOpt, &role, &rsslErrorInfo ) )
+		clearRsslErrorInfo( &rsslErrorInfo );
+
+		if ( RSSL_RET_SUCCESS != rsslReactorConnect( _pRsslReactor, &connectOpt, ( RsslReactorChannelRole* )&role, &rsslErrorInfo ) )
 		{
 
 			EmaString temp( "Failed to add RsslChannel(s) to RsslReactor. Channel name(s) " );
-			temp.append(channelNames ).append( CR )
-				.append( "Consumer Name " ).append( _ommBaseImpl.getUserName() ).append( CR )
-				.append( "RsslReactor " ).append( ptrToStringAsHex( _pRsslReactor ) ).append( CR )
-				.append( "RsslChannel " ).append( (UInt64)rsslErrorInfo.rsslError.channel ).append( CR )
-				.append( "Error Id " ).append( rsslErrorInfo.rsslError.rsslErrorId ).append( CR )
-				.append( "Internal sysError " ).append( rsslErrorInfo.rsslError.sysError ).append( CR )
-				.append( "Error Location " ).append( rsslErrorInfo.errorLocation ).append( CR )
-				.append( "Error Text " ).append( rsslErrorInfo.rsslError.text );
+			temp.append( channelNames ).append( CR )
+			.append( "Consumer Name " ).append( _ommBaseImpl.getInstanceName() ).append( CR )
+			.append( "RsslReactor " ).append( ptrToStringAsHex( _pRsslReactor ) ).append( CR )
+			.append( "RsslChannel " ).append( ( UInt64 )rsslErrorInfo.rsslError.channel ).append( CR )
+			.append( "Error Id " ).append( rsslErrorInfo.rsslError.rsslErrorId ).append( CR )
+			.append( "Internal sysError " ).append( rsslErrorInfo.rsslError.sysError ).append( CR )
+			.append( "Error Location " ).append( rsslErrorInfo.errorLocation ).append( CR )
+			.append( "Error Text " ).append( rsslErrorInfo.rsslError.text );
 
 			if ( OmmLoggerClient::ErrorEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
 				_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::ErrorEnum, temp.trimWhitespace() );
 
-			for(unsigned int i = 0; i < connectOpt.connectionCount; ++i)
+			for ( UInt32 i = 0; i < connectOpt.connectionCount; ++i )
 			{
-				Channel *pChannel =(Channel *) reactorConnectInfo[i].rsslConnectOptions.userSpecPtr;
-				if(pChannel)
+				Channel* pChannel = ( Channel* )reactorConnectInfo[i].rsslConnectOptions.userSpecPtr;
+				if ( pChannel )
+				{
+					_channelList.removeChannel( pChannel );
 					Channel::destroy( pChannel );
+				}
 			}
 
 			delete [] reactorConnectInfo;
@@ -717,12 +752,12 @@ void ChannelCallbackClient::initialize( RsslRDMLoginRequest* loginRequest, RsslR
 		{
 			EmaString temp( "Successfully created a Reactor and Channel(s)" );
 			temp.append( CR )
-				.append(" Channel name(s) " ).append( channelNames ).append( CR )
-				.append( "Consumer Name " ).append( _ommBaseImpl.getUserName() );
+			.append( "Channel name(s) " ).append( channelNames ).append( CR )
+			.append( "Consumer Name " ).append( _ommBaseImpl.getInstanceName() );
 			_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::VerboseEnum, temp );
-		}	
+		}
 
-		if(supportedConnectionTypeChannelCount < connectOpt.connectionCount)
+		if ( supportedConnectionTypeChannelCount < connectOpt.connectionCount )
 			_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::WarningEnum, errorStrUnsupportedConnectionType );
 	}
 	else
@@ -736,24 +771,24 @@ void ChannelCallbackClient::initialize( RsslRDMLoginRequest* loginRequest, RsslR
 void ChannelCallbackClient::removeChannel( RsslReactorChannel* pRsslReactorChannel )
 {
 	if ( pRsslReactorChannel )
-		_channelList.removeChannel( (Channel*)pRsslReactorChannel->userSpecPtr );
+		_channelList.removeChannel( ( Channel* )pRsslReactorChannel->userSpecPtr );
 }
 
 RsslReactorCallbackRet ChannelCallbackClient::processCallback( RsslReactor* pRsslReactor,
-															  RsslReactorChannel* pRsslReactorChannel,
-															  RsslReactorChannelEvent* pEvent )
+    RsslReactorChannel* pRsslReactorChannel,
+    RsslReactorChannelEvent* pEvent )
 {
-	Channel* pChannel = (Channel*)( pEvent->pReactorChannel->userSpecPtr );
-	ChannelConfig *pChannelConfig = _ommBaseImpl.getActiveConfig().findChannelConfig(pChannel);
+	Channel* pChannel = ( Channel* )( pEvent->pReactorChannel->userSpecPtr );
+	ChannelConfig* pChannelConfig = _ommBaseImpl.getActiveConfig().findChannelConfig( pChannel );
 
-	if(!pChannelConfig)
+	if ( !pChannelConfig )
 	{
 		EmaString temp( "Failed to find channel config for channel " );
 		temp.append( pChannel->getName() )
-			.append(" that received event type: ")
-			.append(pEvent->channelEventType ).append( CR )
-			.append( "Consumer Name " ).append( _ommBaseImpl.getUserName() ).append( CR )
-			.append( "RsslReactor " ).append( ptrToStringAsHex( pRsslReactor ) ).append( CR );
+		.append( " that received event type: " )
+		.append( pEvent->channelEventType ).append( CR )
+		.append( "User Name " ).append( _ommBaseImpl.getInstanceName() ).append( CR )
+		.append( "RsslReactor " ).append( ptrToStringAsHex( pRsslReactor ) ).append( CR );
 
 		_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::ErrorEnum, temp.trimWhitespace() );
 		_ommBaseImpl.closeChannel( pRsslReactorChannel );
@@ -763,292 +798,311 @@ RsslReactorCallbackRet ChannelCallbackClient::processCallback( RsslReactor* pRss
 
 	switch ( pEvent->channelEventType )
 	{
-		case RSSL_RC_CET_CHANNEL_OPENED :
+	case RSSL_RC_CET_CHANNEL_OPENED :
+	{
+		if ( OmmLoggerClient::VerboseEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
 		{
-			if ( OmmLoggerClient::VerboseEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
-			{
-				EmaString temp( "Received ChannelOpened on channel " );
-				temp.append( pChannel->getName() ).append( CR )
-					.append( "Consumer Name " ).append( _ommBaseImpl.getUserName() );
+			EmaString temp( "Received ChannelOpened on channel " );
+			temp.append( pChannel->getName() ).append( CR )
+			.append( "Consumer Name " ).append( _ommBaseImpl.getInstanceName() );
 
-				_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::VerboseEnum, temp );
-			}
-			return RSSL_RC_CRET_SUCCESS;
+			_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::VerboseEnum, temp );
 		}
-		case RSSL_RC_CET_CHANNEL_UP:
+		return RSSL_RC_CRET_SUCCESS;
+	}
+	case RSSL_RC_CET_CHANNEL_UP:
+	{
+		RsslReactorChannelInfo channelInfo;
+		RsslErrorInfo rsslErrorInfo;
+		clearRsslErrorInfo( &rsslErrorInfo );
+		RsslRet retChanInfo;
+		retChanInfo = rsslReactorGetChannelInfo( pRsslReactorChannel, &channelInfo, &rsslErrorInfo );
+		EmaString componentInfo( "Connected component version: " );
+		for ( unsigned int i = 0; i < channelInfo.rsslChannelInfo.componentInfoCount; ++i )
 		{
-			RsslReactorChannelInfo channelInfo;
-			RsslErrorInfo rsslErrorInfo;
-			RsslRet retChanInfo;
-			retChanInfo = rsslReactorGetChannelInfo(pRsslReactorChannel, &channelInfo, &rsslErrorInfo);
-			EmaString componentInfo("Connected component version: ");
-			for(unsigned int i = 0; i < channelInfo.rsslChannelInfo.componentInfoCount; ++i)
-			{
-				componentInfo.append(channelInfo.rsslChannelInfo.componentInfo[i]->componentVersion.data);
-				if( i < (channelInfo.rsslChannelInfo.componentInfoCount - 1) )
-					componentInfo.append(", ");
-			}
+			componentInfo.append( channelInfo.rsslChannelInfo.componentInfo[i]->componentVersion.data );
+			if ( i < ( channelInfo.rsslChannelInfo.componentInfoCount - 1 ) )
+				componentInfo.append( ", " );
+		}
 #ifdef WIN32
-			int sendBfrSize = 65535;
+		int sendBfrSize = 65535;
 
-			if ( rsslReactorChannelIoctl( pRsslReactorChannel, RSSL_SYSTEM_WRITE_BUFFERS, &sendBfrSize, &rsslErrorInfo ) != RSSL_RET_SUCCESS )
-			{
-				if ( OmmLoggerClient::ErrorEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
-				{
-					EmaString temp( "Failed to set send buffer size on channel " );
-					temp.append( pChannel->getName() ).append( CR )
-						.append( "User Name " ).append( _ommBaseImpl.getUserName() ).append( CR )
-						.append( "RsslReactor " ).append( ptrToStringAsHex( pRsslReactor ) ).append( CR )
-						.append( "RsslChannel " ).append( ptrToStringAsHex( rsslErrorInfo.rsslError.channel ) ).append( CR )
-						.append( "Error Id " ).append( rsslErrorInfo.rsslError.rsslErrorId ).append( CR )
-						.append( "Internal sysError " ).append( rsslErrorInfo.rsslError.sysError ).append( CR )
-						.append( "Error Location " ).append( rsslErrorInfo.errorLocation ).append( CR )
-						.append( "Error text " ).append( rsslErrorInfo.rsslError.text );
-
-					_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::ErrorEnum, temp.trimWhitespace() );
-				}
-
-				_ommBaseImpl.closeChannel( pRsslReactorChannel );
-
-				return RSSL_RC_CRET_SUCCESS;
-			}
-
-			int rcvBfrSize = 65535;
-			if ( rsslReactorChannelIoctl( pRsslReactorChannel, RSSL_SYSTEM_READ_BUFFERS, &rcvBfrSize, &rsslErrorInfo ) != RSSL_RET_SUCCESS )
-			{
-				if ( OmmLoggerClient::ErrorEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
-				{
-					EmaString temp( "Failed to set recv buffer size on channel " );
-					temp.append( pChannel->getName() ).append( CR )
-						.append( "User Name " ).append( _ommBaseImpl.getUserName() ).append( CR )
-						.append( "RsslReactor " ).append( ptrToStringAsHex( pRsslReactor ) ).append( CR )
-						.append( "RsslChannel " ).append( ptrToStringAsHex( rsslErrorInfo.rsslError.channel ) ).append( CR )
-						.append( "Error Id " ).append( rsslErrorInfo.rsslError.rsslErrorId ).append( CR )
-						.append( "Internal sysError " ).append( rsslErrorInfo.rsslError.sysError ).append( CR )
-						.append( "Error Location " ).append( rsslErrorInfo.errorLocation ).append( CR )
-						.append( "Error text " ).append( rsslErrorInfo.rsslError.text );
-
-					_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::ErrorEnum, temp.trimWhitespace() );
-				}
-
-				_ommBaseImpl.closeChannel( pRsslReactorChannel );
-
-				return RSSL_RC_CRET_SUCCESS;
-			}
-#endif
-			if (pChannelConfig->connectionType != RSSL_CONN_TYPE_RELIABLE_MCAST && rsslReactorChannelIoctl( pRsslReactorChannel, RSSL_COMPRESSION_THRESHOLD, &pChannelConfig->compressionThreshold, &rsslErrorInfo ) != RSSL_RET_SUCCESS )
-			{
-				if ( OmmLoggerClient::ErrorEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
-				{
-					EmaString temp( "Failed to set compression threshold on channel " );
-					temp.append( pChannel->getName() ).append( CR )
-						.append( "Consumer Name " ).append( _ommBaseImpl.getUserName() ).append( CR )
-						.append( "RsslReactor " ).append( ptrToStringAsHex( pRsslReactor ) ).append( CR )
-						.append( "RsslChannel " ).append( ptrToStringAsHex( rsslErrorInfo.rsslError.channel ) ).append( CR )
-						.append( "Error Id " ).append( rsslErrorInfo.rsslError.rsslErrorId ).append( CR )
-						.append( "Internal sysError " ).append( rsslErrorInfo.rsslError.sysError ).append( CR )
-						.append( "Error Location " ).append( rsslErrorInfo.errorLocation ).append( CR )
-						.append( "Error text " ).append( rsslErrorInfo.rsslError.text );
-
-					_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::ErrorEnum, temp.trimWhitespace() );
-				}
-
-				_ommBaseImpl.closeChannel( pRsslReactorChannel );
-
-				return RSSL_RC_CRET_SUCCESS;
-			}
-
-			pChannel->setRsslChannel( pRsslReactorChannel )
-				.setRsslSocket( pRsslReactorChannel->socketId )
-				.setChannelState( Channel::ChannelUpEnum );
-			if ( OmmLoggerClient::SuccessEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
-			{
-				EmaString temp( "Received ChannelUp event on channel " );
-				temp.append( pChannel->getName() ).append( CR )
-					.append( "User Name " ).append( _ommBaseImpl.getUserName() );
-				if ( channelInfo.rsslChannelInfo.componentInfoCount > 0 )
-					temp.append( CR ).append( componentInfo );
-
-				_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::SuccessEnum, temp );
-			}
-
-			if ( pChannelConfig->xmlTraceToFile || pChannelConfig->xmlTraceToStdout ) 
-			{
-				EmaString fileName(pChannelConfig->xmlTraceFileName );
-				fileName.append( "_" );
-
-				RsslTraceOptions traceOptions;
-				rsslClearTraceOptions( &traceOptions );
-
-				traceOptions.traceMsgFileName = (char*)fileName.c_str();
-
-				if ( pChannelConfig->xmlTraceToFile )
-					traceOptions.traceFlags |= RSSL_TRACE_TO_FILE_ENABLE;
-
-				if ( pChannelConfig->xmlTraceToStdout )
-					traceOptions.traceFlags |= RSSL_TRACE_TO_STDOUT;
-
-				if ( pChannelConfig->xmlTraceToMultipleFiles )
-					traceOptions.traceFlags |= RSSL_TRACE_TO_MULTIPLE_FILES;
-
-				if ( pChannelConfig->xmlTraceWrite )
-					traceOptions.traceFlags |= RSSL_TRACE_WRITE;
-
-				if (pChannelConfig->xmlTraceRead )
-					traceOptions.traceFlags |= RSSL_TRACE_READ;
-		
-				traceOptions.traceMsgMaxFileSize = pChannelConfig->xmlTraceMaxFileSize;
-
-				if ( RSSL_RET_SUCCESS != rsslReactorChannelIoctl( pRsslReactorChannel, (RsslIoctlCodes)RSSL_TRACE, (void *)&traceOptions, &rsslErrorInfo ) )
-				{
-					if ( OmmLoggerClient::ErrorEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
-					{
-						EmaString temp( "Failed to enable Xml Tracing on channel " );
-						temp.append( pChannel->getName() ).append( CR )
-							.append( "User Name " ).append( _ommBaseImpl.getUserName() ).append( CR )
-							.append( "RsslReactor " ).append( ptrToStringAsHex( pRsslReactor ) ).append( CR )
-							.append( "RsslChannel " ).append( ptrToStringAsHex( rsslErrorInfo.rsslError.channel ) ).append( CR )
-							.append( "Error Id " ).append( rsslErrorInfo.rsslError.rsslErrorId ).append( CR )
-							.append( "Internal sysError " ).append( rsslErrorInfo.rsslError.sysError ).append( CR )
-							.append( "Error Location " ).append( rsslErrorInfo.errorLocation ).append( CR )
-							.append( "Error Text " ).append( rsslErrorInfo.rsslError.text );
-						_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::ErrorEnum, temp.trimWhitespace() );
-					}
-				}
-				else if ( OmmLoggerClient::VerboseEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
-				{
-					EmaString temp( "Xml Tracing enabled on channel " );
-					temp.append( pChannel->getName() ).append( CR )
-						.append( "User Name " ).append( _ommBaseImpl.getUserName() );
-					_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::VerboseEnum, temp );
-				}
-			}
-
-			_ommBaseImpl.addSocket( pRsslReactorChannel->socketId );
-			_ommBaseImpl.setState( OmmBaseImpl::RsslChannelUpEnum );
-			return RSSL_RC_CRET_SUCCESS;
-		}
-		case RSSL_RC_CET_CHANNEL_READY:
+		if ( rsslReactorChannelIoctl( pRsslReactorChannel, RSSL_SYSTEM_WRITE_BUFFERS, &sendBfrSize, &rsslErrorInfo ) != RSSL_RET_SUCCESS )
 		{
-			pChannel->setChannelState( Channel::ChannelReadyEnum );
-
-			if ( OmmLoggerClient::VerboseEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
-			{
-				EmaString temp( "Received ChannelReady event on channel " );
-				temp.append( pChannel->getName() ).append( CR )
-					.append( "User Name " ).append( _ommBaseImpl.getUserName() );
-				_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::VerboseEnum, temp );
-			}
-			return RSSL_RC_CRET_SUCCESS;
-		}
-		case RSSL_RC_CET_FD_CHANGE:
-		{
-			if ( OmmLoggerClient::VerboseEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
-			{
-				EmaString temp( "Received FD Change event on channel " );
-				temp.append( pChannel->getName() ).append( CR )
-					.append( "User Name " ).append( _ommBaseImpl.getUserName() );
-				_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::VerboseEnum, temp );
-			}
-
-			pChannel->setRsslChannel( pRsslReactorChannel )
-				.setRsslSocket( pRsslReactorChannel->socketId );
-
-			_ommBaseImpl.removeSocket( pRsslReactorChannel->oldSocketId );
-			_ommBaseImpl.addSocket( pRsslReactorChannel->socketId );
-			return RSSL_RC_CRET_SUCCESS;
-		}
-		case RSSL_RC_CET_CHANNEL_DOWN:
-		{
-			pChannel->setChannelState( Channel::ChannelDownEnum );
-
 			if ( OmmLoggerClient::ErrorEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
 			{
-				EmaString temp( "Received ChannelDown event on channel " );
+				EmaString temp( "Failed to set send buffer size on channel " );
 				temp.append( pChannel->getName() ).append( CR )
-					.append( "User Name " ).append( _ommBaseImpl.getUserName() ).append( CR )
-					.append( "RsslReactor " ).append( ptrToStringAsHex( pRsslReactor ) ).append( CR )
-					.append( "RsslChannel " ).append( ptrToStringAsHex( pEvent->pError->rsslError.channel ) ).append( CR )
-					.append( "Error Id " ).append( pEvent->pError->rsslError.rsslErrorId ).append( CR )
-					.append( "Internal sysError " ).append( pEvent->pError->rsslError.sysError ).append( CR )
-					.append( "Error Location " ).append( pEvent->pError->errorLocation ).append( CR )
-					.append( "Error Text " ).append( pEvent->pError->rsslError.text );
-				
+				.append( "User Name " ).append( _ommBaseImpl.getInstanceName() ).append( CR )
+				.append( "RsslReactor " ).append( ptrToStringAsHex( pRsslReactor ) ).append( CR )
+				.append( "RsslChannel " ).append( ptrToStringAsHex( rsslErrorInfo.rsslError.channel ) ).append( CR )
+				.append( "Error Id " ).append( rsslErrorInfo.rsslError.rsslErrorId ).append( CR )
+				.append( "Internal sysError " ).append( rsslErrorInfo.rsslError.sysError ).append( CR )
+				.append( "Error Location " ).append( rsslErrorInfo.errorLocation ).append( CR )
+				.append( "Error text " ).append( rsslErrorInfo.rsslError.text );
+
 				_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::ErrorEnum, temp.trimWhitespace() );
 			}
-
-			_ommBaseImpl.setState( OmmBaseImpl::RsslChannelDownEnum );
 
 			_ommBaseImpl.closeChannel( pRsslReactorChannel );
 
 			return RSSL_RC_CRET_SUCCESS;
 		}
-		case RSSL_RC_CET_CHANNEL_DOWN_RECONNECTING:
-		{
-			if ( OmmLoggerClient::WarningEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
-			{
-				EmaString temp( "Received ChannelDownReconnecting event on channel " );
-				temp.append( pChannel->getName() ).append( CR )
-					.append( "User Name " ).append( _ommBaseImpl.getUserName() ).append( CR )
-					.append( "RsslReactor ").append( ptrToStringAsHex( pRsslReactor ) ).append( CR )
-					.append( "RsslChannel " ).append( ptrToStringAsHex( pEvent->pError->rsslError.channel ) ).append( CR )
-					.append( "Error Id " ).append( pEvent->pError->rsslError.rsslErrorId ).append( CR )
-					.append( "Internal sysError " ).append( pEvent->pError->rsslError.sysError ).append(CR)
-					.append( "Error Location " ).append( pEvent->pError->errorLocation ).append( CR )
-					.append( "Error Text " ).append( pEvent->pError->rsslError.text );
 
-				_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::WarningEnum, temp.trimWhitespace() );
-			}
-
-			if ( pRsslReactorChannel->socketId != REACTOR_INVALID_SOCKET )
-				_ommBaseImpl.removeSocket( pRsslReactorChannel->socketId );
-
-			pChannel->setRsslSocket( 0 )
-				.setChannelState( Channel::ChannelDownReconnectingEnum );
-
-			return RSSL_RC_CRET_SUCCESS;
-		}
-		case RSSL_RC_CET_WARNING:
-		{
-			if ( OmmLoggerClient::WarningEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
-			{
-				EmaString temp( "Received Channel warning event on channel " );
-				temp.append( pChannel->getName() ).append( CR )
-					.append( "User Name " ).append( _ommBaseImpl.getUserName() ).append( CR )
-					.append( "RsslReactor " ).append( ptrToStringAsHex( pRsslReactor ) ).append( CR )
-					.append( "RsslChannel " ).append( ptrToStringAsHex( pEvent->pError->rsslError.channel ) ).append( CR )
-					.append( "Error Id " ).append( pEvent->pError->rsslError.rsslErrorId ).append( CR )
-					.append( "Internal sysError " ).append( pEvent->pError->rsslError.sysError ).append( CR )
-					.append( "Error Location " ).append( pEvent->pError->errorLocation ).append( CR )
-					.append( "Error Text " ).append( pEvent->pError->rsslError.text );
-
-				_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::WarningEnum, temp.trimWhitespace() );
-			}
-			return RSSL_RC_CRET_SUCCESS;
-		}
-		default:
+		int rcvBfrSize = 65535;
+		if ( rsslReactorChannelIoctl( pRsslReactorChannel, RSSL_SYSTEM_READ_BUFFERS, &rcvBfrSize, &rsslErrorInfo ) != RSSL_RET_SUCCESS )
 		{
 			if ( OmmLoggerClient::ErrorEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
 			{
-				EmaString temp( "Received unknown channel event type " );
-				temp.append( pEvent->channelEventType ).append( CR )
-					.append( "channel " ).append( pChannel->getName() ).append( CR )
-					.append( "User Name " ).append( _ommBaseImpl.getUserName() ).append( CR )
-					.append( "RsslReactor " ).append( ptrToStringAsHex( pRsslReactor ) ).append( CR )
-					.append( "RsslChannel " ).append( ptrToStringAsHex( pEvent->pError->rsslError.channel ) ).append( CR )
-					.append( "Error Id " ).append( pEvent->pError->rsslError.rsslErrorId ).append( CR )
-					.append( "Internal sysError " ).append( pEvent->pError->rsslError.sysError ).append( CR )
-					.append( "Error Location " ).append( pEvent->pError->errorLocation ).append( CR )
-					.append( "Error Text " ).append( pEvent->pError->rsslError.text );
+				EmaString temp( "Failed to set recv buffer size on channel " );
+				temp.append( pChannel->getName() ).append( CR )
+				.append( "User Name " ).append( _ommBaseImpl.getInstanceName() ).append( CR )
+				.append( "RsslReactor " ).append( ptrToStringAsHex( pRsslReactor ) ).append( CR )
+				.append( "RsslChannel " ).append( ptrToStringAsHex( rsslErrorInfo.rsslError.channel ) ).append( CR )
+				.append( "Error Id " ).append( rsslErrorInfo.rsslError.rsslErrorId ).append( CR )
+				.append( "Internal sysError " ).append( rsslErrorInfo.rsslError.sysError ).append( CR )
+				.append( "Error Location " ).append( rsslErrorInfo.errorLocation ).append( CR )
+				.append( "Error text " ).append( rsslErrorInfo.rsslError.text );
 
 				_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::ErrorEnum, temp.trimWhitespace() );
 			}
-			return RSSL_RC_CRET_FAILURE;
+
+			_ommBaseImpl.closeChannel( pRsslReactorChannel );
+
+			return RSSL_RC_CRET_SUCCESS;
 		}
+#endif
+		if ( pChannelConfig->connectionType != RSSL_CONN_TYPE_RELIABLE_MCAST && rsslReactorChannelIoctl( pRsslReactorChannel, RSSL_COMPRESSION_THRESHOLD, &pChannelConfig->compressionThreshold, &rsslErrorInfo ) != RSSL_RET_SUCCESS )
+		{
+			if ( OmmLoggerClient::ErrorEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
+			{
+				EmaString temp( "Failed to set compression threshold on channel " );
+				temp.append( pChannel->getName() ).append( CR )
+				.append( "Consumer Name " ).append( _ommBaseImpl.getInstanceName() ).append( CR )
+				.append( "RsslReactor " ).append( ptrToStringAsHex( pRsslReactor ) ).append( CR )
+				.append( "RsslChannel " ).append( ptrToStringAsHex( rsslErrorInfo.rsslError.channel ) ).append( CR )
+				.append( "Error Id " ).append( rsslErrorInfo.rsslError.rsslErrorId ).append( CR )
+				.append( "Internal sysError " ).append( rsslErrorInfo.rsslError.sysError ).append( CR )
+				.append( "Error Location " ).append( rsslErrorInfo.errorLocation ).append( CR )
+				.append( "Error text " ).append( rsslErrorInfo.rsslError.text );
+
+				_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::ErrorEnum, temp.trimWhitespace() );
+			}
+
+			_ommBaseImpl.closeChannel( pRsslReactorChannel );
+
+			return RSSL_RC_CRET_SUCCESS;
+		}
+
+		pChannel->setRsslChannel( pRsslReactorChannel )
+		.setRsslSocket( pRsslReactorChannel->socketId )
+		.setChannelState( Channel::ChannelUpEnum );
+		if ( OmmLoggerClient::SuccessEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
+		{
+			EmaString temp( "Received ChannelUp event on channel " );
+			temp.append( pChannel->getName() ).append( CR )
+			.append( "User Name " ).append( _ommBaseImpl.getInstanceName() );
+			if ( channelInfo.rsslChannelInfo.componentInfoCount > 0 )
+				temp.append( CR ).append( componentInfo );
+
+			_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::SuccessEnum, temp );
+		}
+
+		if ( pChannelConfig->xmlTraceToFile || pChannelConfig->xmlTraceToStdout )
+		{
+			EmaString fileName( pChannelConfig->xmlTraceFileName );
+			fileName.append( "_" );
+
+			RsslTraceOptions traceOptions;
+			rsslClearTraceOptions( &traceOptions );
+
+			traceOptions.traceMsgFileName = ( char* )fileName.c_str();
+
+			if ( pChannelConfig->xmlTraceToFile )
+				traceOptions.traceFlags |= RSSL_TRACE_TO_FILE_ENABLE;
+
+			if ( pChannelConfig->xmlTraceToStdout )
+				traceOptions.traceFlags |= RSSL_TRACE_TO_STDOUT;
+
+			if ( pChannelConfig->xmlTraceToMultipleFiles )
+				traceOptions.traceFlags |= RSSL_TRACE_TO_MULTIPLE_FILES;
+
+			if ( pChannelConfig->xmlTraceWrite )
+				traceOptions.traceFlags |= RSSL_TRACE_WRITE;
+
+			if ( pChannelConfig->xmlTraceRead )
+				traceOptions.traceFlags |= RSSL_TRACE_READ;
+
+			if ( pChannelConfig->xmlTracePing )
+				traceOptions.traceFlags |= RSSL_TRACE_PING;
+
+			if ( pChannelConfig->xmlTraceHex )
+				traceOptions.traceFlags |= RSSL_TRACE_HEX;
+
+			traceOptions.traceMsgMaxFileSize = pChannelConfig->xmlTraceMaxFileSize;
+
+			if ( RSSL_RET_SUCCESS != rsslReactorChannelIoctl( pRsslReactorChannel, ( RsslIoctlCodes )RSSL_TRACE, ( void* )&traceOptions, &rsslErrorInfo ) )
+			{
+				if ( OmmLoggerClient::ErrorEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
+				{
+					EmaString temp( "Failed to enable Xml Tracing on channel " );
+					temp.append( pChannel->getName() ).append( CR )
+					.append( "User Name " ).append( _ommBaseImpl.getInstanceName() ).append( CR )
+					.append( "RsslReactor " ).append( ptrToStringAsHex( pRsslReactor ) ).append( CR )
+					.append( "RsslChannel " ).append( ptrToStringAsHex( rsslErrorInfo.rsslError.channel ) ).append( CR )
+					.append( "Error Id " ).append( rsslErrorInfo.rsslError.rsslErrorId ).append( CR )
+					.append( "Internal sysError " ).append( rsslErrorInfo.rsslError.sysError ).append( CR )
+					.append( "Error Location " ).append( rsslErrorInfo.errorLocation ).append( CR )
+					.append( "Error Text " ).append( rsslErrorInfo.rsslError.text );
+					_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::ErrorEnum, temp.trimWhitespace() );
+				}
+			}
+			else if ( OmmLoggerClient::VerboseEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
+			{
+				EmaString temp( "Xml Tracing enabled on channel " );
+				temp.append( pChannel->getName() ).append( CR )
+				.append( "User Name " ).append( _ommBaseImpl.getInstanceName() );
+				_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::VerboseEnum, temp );
+			}
+		}
+
+		_ommBaseImpl.addSocket( pRsslReactorChannel->socketId );
+		_ommBaseImpl.setState( OmmBaseImpl::RsslChannelUpEnum );
+
+		_ommBaseImpl.processChannelEvent( pEvent );
+		_ommBaseImpl.getLoginCallbackClient().processChannelEvent( pEvent );
+
+		return RSSL_RC_CRET_SUCCESS;
+	}
+	case RSSL_RC_CET_CHANNEL_READY:
+	{
+		pChannel->setChannelState( Channel::ChannelReadyEnum );
+
+		if ( OmmLoggerClient::VerboseEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
+		{
+			EmaString temp( "Received ChannelReady event on channel " );
+			temp.append( pChannel->getName() ).append( CR )
+			.append( "User Name " ).append( _ommBaseImpl.getInstanceName() );
+			_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::VerboseEnum, temp );
+		}
+		return RSSL_RC_CRET_SUCCESS;
+	}
+	case RSSL_RC_CET_FD_CHANGE:
+	{
+		if ( OmmLoggerClient::VerboseEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
+		{
+			EmaString temp( "Received FD Change event on channel " );
+			temp.append( pChannel->getName() ).append( CR )
+			.append( "User Name " ).append( _ommBaseImpl.getInstanceName() );
+			_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::VerboseEnum, temp );
+		}
+
+		pChannel->setRsslChannel( pRsslReactorChannel )
+		.setRsslSocket( pRsslReactorChannel->socketId );
+
+		_ommBaseImpl.removeSocket( pRsslReactorChannel->oldSocketId );
+		_ommBaseImpl.addSocket( pRsslReactorChannel->socketId );
+		return RSSL_RC_CRET_SUCCESS;
+	}
+	case RSSL_RC_CET_CHANNEL_DOWN:
+	{
+		pChannel->setChannelState( Channel::ChannelDownEnum );
+
+		if ( OmmLoggerClient::ErrorEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
+		{
+			EmaString temp( "Received ChannelDown event on channel " );
+			temp.append( pChannel->getName() ).append( CR )
+			.append( "User Name " ).append( _ommBaseImpl.getInstanceName() ).append( CR )
+			.append( "RsslReactor " ).append( ptrToStringAsHex( pRsslReactor ) ).append( CR )
+			.append( "RsslChannel " ).append( ptrToStringAsHex( pEvent->pError->rsslError.channel ) ).append( CR )
+			.append( "Error Id " ).append( pEvent->pError->rsslError.rsslErrorId ).append( CR )
+			.append( "Internal sysError " ).append( pEvent->pError->rsslError.sysError ).append( CR )
+			.append( "Error Location " ).append( pEvent->pError->errorLocation ).append( CR )
+			.append( "Error Text " ).append( pEvent->pError->rsslError.rsslErrorId ? pEvent->pError->rsslError.text : "" );
+
+			_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::ErrorEnum, temp.trimWhitespace() );
+		}
+
+		_ommBaseImpl.setState( OmmBaseImpl::RsslChannelDownEnum );
+
+		_ommBaseImpl.processChannelEvent( pEvent );
+
+		_ommBaseImpl.getLoginCallbackClient().processChannelEvent( pEvent );
+
+		_ommBaseImpl.closeChannel( pRsslReactorChannel );
+
+		return RSSL_RC_CRET_SUCCESS;
+	}
+	case RSSL_RC_CET_CHANNEL_DOWN_RECONNECTING:
+	{
+		if ( OmmLoggerClient::WarningEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
+		{
+			EmaString temp( "Received ChannelDownReconnecting event on channel " );
+			temp.append( pChannel->getName() ).append( CR )
+			.append( "User Name " ).append( _ommBaseImpl.getInstanceName() ).append( CR )
+			.append( "RsslReactor " ).append( ptrToStringAsHex( pRsslReactor ) ).append( CR )
+			.append( "RsslChannel " ).append( ptrToStringAsHex( pEvent->pError->rsslError.channel ) ).append( CR )
+			.append( "Error Id " ).append( pEvent->pError->rsslError.rsslErrorId ).append( CR )
+			.append( "Internal sysError " ).append( pEvent->pError->rsslError.sysError ).append( CR )
+			.append( "Error Location " ).append( pEvent->pError->errorLocation ).append( CR )
+			.append( "Error Text " ).append( pEvent->pError->rsslError.rsslErrorId ? pEvent->pError->rsslError.text : "" );
+
+			_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::WarningEnum, temp.trimWhitespace() );
+		}
+
+		if ( pRsslReactorChannel->socketId != REACTOR_INVALID_SOCKET )
+			_ommBaseImpl.removeSocket( pRsslReactorChannel->socketId );
+
+		pChannel->setRsslSocket( 0 )
+		.setChannelState( Channel::ChannelDownReconnectingEnum );
+
+		_ommBaseImpl.processChannelEvent( pEvent );
+
+		_ommBaseImpl.getLoginCallbackClient().processChannelEvent( pEvent );
+
+		return RSSL_RC_CRET_SUCCESS;
+	}
+	case RSSL_RC_CET_WARNING:
+	{
+		if ( OmmLoggerClient::WarningEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
+		{
+			EmaString temp( "Received Channel warning event on channel " );
+			temp.append( pChannel->getName() ).append( CR )
+			.append( "User Name " ).append( _ommBaseImpl.getInstanceName() ).append( CR )
+			.append( "RsslReactor " ).append( ptrToStringAsHex( pRsslReactor ) ).append( CR )
+			.append( "RsslChannel " ).append( ptrToStringAsHex( pEvent->pError->rsslError.channel ) ).append( CR )
+			.append( "Error Id " ).append( pEvent->pError->rsslError.rsslErrorId ).append( CR )
+			.append( "Internal sysError " ).append( pEvent->pError->rsslError.sysError ).append( CR )
+			.append( "Error Location " ).append( pEvent->pError->errorLocation ).append( CR )
+			.append( "Error Text " ).append( pEvent->pError->rsslError.rsslErrorId ? pEvent->pError->rsslError.text : "" );
+
+			_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::WarningEnum, temp.trimWhitespace() );
+		}
+		return RSSL_RC_CRET_SUCCESS;
+	}
+	default:
+	{
+		if ( OmmLoggerClient::ErrorEnum >= _ommBaseImpl.getActiveConfig().loggerConfig.minLoggerSeverity )
+		{
+			EmaString temp( "Received unknown channel event type " );
+			temp.append( pEvent->channelEventType ).append( CR )
+			.append( "channel " ).append( pChannel->getName() ).append( CR )
+			.append( "User Name " ).append( _ommBaseImpl.getInstanceName() ).append( CR )
+			.append( "RsslReactor " ).append( ptrToStringAsHex( pRsslReactor ) ).append( CR )
+			.append( "RsslChannel " ).append( ptrToStringAsHex( pEvent->pError->rsslError.channel ) ).append( CR )
+			.append( "Error Id " ).append( pEvent->pError->rsslError.rsslErrorId ).append( CR )
+			.append( "Internal sysError " ).append( pEvent->pError->rsslError.sysError ).append( CR )
+			.append( "Error Location " ).append( pEvent->pError->errorLocation ).append( CR )
+			.append( "Error Text " ).append( pEvent->pError->rsslError.rsslErrorId ? pEvent->pError->rsslError.text : "" );
+
+			_ommBaseImpl.getOmmLoggerClient().log( _clientName, OmmLoggerClient::ErrorEnum, temp.trimWhitespace() );
+		}
+		return RSSL_RC_CRET_FAILURE;
+	}
 	}
 }
 
-const ChannelList & ChannelCallbackClient::getChannelList()
+const ChannelList& ChannelCallbackClient::getChannelList()
 {
-    return _channelList;
+	return _channelList;
 }

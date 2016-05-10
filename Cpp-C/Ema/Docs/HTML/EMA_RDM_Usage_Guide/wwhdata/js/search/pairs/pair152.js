@@ -1,0 +1,22 @@
+function FileData_Pairs(x)
+{
+x.t("api","edition");
+x.t("generic","message");
+x.t("supported","mmt_symbol_list");
+x.t("mmt_symbol_list","reuters");
+x.t("reuters","domain");
+x.t("domain","usage");
+x.t("domain","model");
+x.t("chapter","symbollist");
+x.t("message","api");
+x.t("message","(s)");
+x.t("symbollist","domain");
+x.t("usage","elektron");
+x.t("usage","note");
+x.t("11.2","usage");
+x.t("elektron","message");
+x.t("(s)","supported");
+x.t("note","generic");
+x.t("edition","11.2");
+x.t("model","chapter");
+}

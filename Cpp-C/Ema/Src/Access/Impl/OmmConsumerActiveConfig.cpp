@@ -10,7 +10,12 @@
 
 using namespace thomsonreuters::ema::access;
 
-OmmConsumerActiveConfig::OmmConsumerActiveConfig() : ActiveConfig(), consumerName()
+#define DEFAULT_USER_DISPATCH OmmConsumerConfig::ApiDispatchEnum
+static const EmaString DEFAULT_CONSUMER_SERVICE_NAME( "14002" );
+
+OmmConsumerActiveConfig::OmmConsumerActiveConfig() :
+	ActiveConfig( DEFAULT_CONSUMER_SERVICE_NAME ),
+	operationModel( DEFAULT_USER_DISPATCH )
 {
 }
 
@@ -20,7 +25,5 @@ OmmConsumerActiveConfig::~OmmConsumerActiveConfig()
 
 void OmmConsumerActiveConfig::clear()
 {
-	consumerName.clear();
 	ActiveConfig::clear();
 }
-

@@ -21,6 +21,8 @@
 #include "OmmSystemException.h"
 #include "OmmUnsupportedDomainTypeException.h"
 
+#include <new>
+
 #define	EMA_BIG_STR_BUFF_SIZE (1024*4)
 
 using namespace thomsonreuters::ema::access;
@@ -28,317 +30,320 @@ using namespace thomsonreuters::ema::access;
 #ifdef USING_POLL
 int OmmBaseImpl::addFd( int fd, short events = POLLIN )
 {
-  if ( _eventFdsCount == _eventFdsCapacity )
-    {
-      _eventFdsCapacity *= 2;
-      pollfd * tmp( new pollfd[ _eventFdsCapacity ] );
-      for ( int i = 0; i < _eventFdsCount; ++i )
-	tmp[ i ] = _eventFds[ i ];
-      delete [] _eventFds;
-      _eventFds = tmp;
-    }
-  _eventFds[ _eventFdsCount ].fd = fd;
-  _eventFds[ _eventFdsCount ].events = events;
+	if ( _eventFdsCount == _eventFdsCapacity )
+	{
+		_eventFdsCapacity *= 2;
+		pollfd* tmp( new pollfd[ _eventFdsCapacity ] );
+		for ( int i = 0; i < _eventFdsCount; ++i )
+			tmp[ i ] = _eventFds[ i ];
+		delete [] _eventFds;
+		_eventFds = tmp;
+	}
+	_eventFds[ _eventFdsCount ].fd = fd;
+	_eventFds[ _eventFdsCount ].events = events;
 
-  return _eventFdsCount++;
+	return _eventFdsCount++;
 }
 
 void OmmBaseImpl::removeFd( int fd )
 {
-  pipeReadEventFdsIdx = -1;
-  for ( int i = 0; i < _eventFdsCount; ++i )
-    if ( _eventFds[ i ].fd == fd )
-      {
-	if ( i < _eventFdsCount - 1 )
-	  _eventFds[ i ] = _eventFds[ _eventFdsCount - 1 ];
-	--_eventFdsCount;
-	break;
-      }
+	_pipeReadEventFdsIdx = -1;
+	for ( int i = 0; i < _eventFdsCount; ++i )
+		if ( _eventFds[ i ].fd == fd )
+		{
+			if ( i < _eventFdsCount - 1 )
+				_eventFds[ i ] = _eventFds[ _eventFdsCount - 1 ];
+			--_eventFdsCount;
+			break;
+		}
 }
 #endif
 
-OmmBaseImpl::OmmBaseImpl( ActiveConfig& _a ) :
-  _activeConfig( _a ),
-  _userLock(),
-  _pipeLock(),
-  _reactorDispatchErrorInfo(),
-  _reactorRetCode( RSSL_RET_SUCCESS ),
-  _state( NotInitializedEnum ),
-  _pRsslReactor( 0 ),
-  _pChannelCallbackClient( 0 ),
-  _pLoginCallbackClient( 0 ),
-  _pDirectoryCallbackClient( 0 ),
-  _pDictionaryCallbackClient( 0 ),
-  _pItemCallbackClient( 0 ),
-  _pLoggerClient( 0 ),
-  _pipe(),
-  _pipeWriteCount( 0 ),
-  _dispatchInternalMsg( false ),
-  _atExit( false ),
-  userErrorHandler( 0 )  
+OmmBaseImpl::OmmBaseImpl( ActiveConfig& activeConfig ) :
+	_activeConfig( activeConfig ),
+	_userLock(),
+	_pipeLock(),
+	_reactorDispatchErrorInfo(),
+	_reactorRetCode( RSSL_RET_SUCCESS ),
+	_state( NotInitializedEnum ),
+	_pRsslReactor( 0 ),
+	_pChannelCallbackClient( 0 ),
+	_pLoginCallbackClient( 0 ),
+	_pDirectoryCallbackClient( 0 ),
+	_pDictionaryCallbackClient( 0 ),
+	_pItemCallbackClient( 0 ),
+	_pLoggerClient( 0 ),
+	_pipe(),
+	_pipeWriteCount( 0 ),
+	_dispatchInternalMsg( false ),
+	_atExit( false ),
+	_eventTimedOut( false ),
+	_pErrorClientHandler( 0 ),
+	_theTimeOuts()
 {
+	clearRsslErrorInfo( &_reactorDispatchErrorInfo );
 }
 
-OmmBaseImpl::OmmBaseImpl( ActiveConfig& _a, OmmConsumerErrorClient& client ) :
-  _activeConfig( _a ),
- _userLock(),
- _pipeLock(),
- _reactorDispatchErrorInfo(),
-  _reactorRetCode( RSSL_RET_SUCCESS ),
- _state( NotInitializedEnum ),
- _pRsslReactor( 0 ),
- _pChannelCallbackClient( 0 ),
- _pLoginCallbackClient( 0 ),
- _pDirectoryCallbackClient( 0 ),
- _pDictionaryCallbackClient( 0 ),
- _pItemCallbackClient( 0 ),
- _pLoggerClient( 0 ),
- _pipe(),
- _pipeWriteCount( 0 ),
- _dispatchInternalMsg( false ),
- _atExit( false )
+OmmBaseImpl::OmmBaseImpl( ActiveConfig& activeConfig, OmmConsumerErrorClient& client ) :
+	_activeConfig( activeConfig ),
+	_userLock(),
+	_pipeLock(),
+	_reactorDispatchErrorInfo(),
+	_reactorRetCode( RSSL_RET_SUCCESS ),
+	_state( NotInitializedEnum ),
+	_pRsslReactor( 0 ),
+	_pChannelCallbackClient( 0 ),
+	_pLoginCallbackClient( 0 ),
+	_pDirectoryCallbackClient( 0 ),
+	_pDictionaryCallbackClient( 0 ),
+	_pItemCallbackClient( 0 ),
+	_pLoggerClient( 0 ),
+	_pipe(),
+	_pipeWriteCount( 0 ),
+	_dispatchInternalMsg( false ),
+	_atExit( false ),
+	_eventTimedOut( false ),
+	_pErrorClientHandler( 0 ),
+	_theTimeOuts()
 {
-  userErrorHandler = new UserErrorHandler( client );
+	try
+	{
+		_pErrorClientHandler = new ErrorClientHandler( client );
+	}
+	catch ( std::bad_alloc )
+	{
+		client.onMemoryExhaustion( "Failed to allocate memory in OmmBaseImpl( ActiveConfig& , OmmConsumerErrorClient& )" );
+	}
+
+	clearRsslErrorInfo( &_reactorDispatchErrorInfo );
 }
 
-OmmBaseImpl::OmmBaseImpl( ActiveConfig& _a, OmmNiProviderErrorClient& client ) :
-  _activeConfig( _a ),
- _userLock(),
- _pipeLock(),
- _reactorDispatchErrorInfo(),
-  _reactorRetCode( RSSL_RET_SUCCESS ),
- _state( NotInitializedEnum ),
- _pRsslReactor( 0 ),
- _pChannelCallbackClient( 0 ),
- _pLoginCallbackClient( 0 ),
- _pDirectoryCallbackClient( 0 ),
- _pDictionaryCallbackClient( 0 ),
- _pItemCallbackClient( 0 ),
- _pLoggerClient( 0 ),
- _pipe(),
- _pipeWriteCount( 0 ),
- _dispatchInternalMsg( false ),
- _atExit( false )
+OmmBaseImpl::OmmBaseImpl( ActiveConfig& activeConfig, OmmProviderErrorClient& client ) :
+	_activeConfig( activeConfig ),
+	_userLock(),
+	_pipeLock(),
+	_reactorDispatchErrorInfo(),
+	_reactorRetCode( RSSL_RET_SUCCESS ),
+	_state( NotInitializedEnum ),
+	_pRsslReactor( 0 ),
+	_pChannelCallbackClient( 0 ),
+	_pLoginCallbackClient( 0 ),
+	_pDirectoryCallbackClient( 0 ),
+	_pDictionaryCallbackClient( 0 ),
+	_pItemCallbackClient( 0 ),
+	_pLoggerClient( 0 ),
+	_pipe(),
+	_pipeWriteCount( 0 ),
+	_dispatchInternalMsg( false ),
+	_atExit( false ),
+	_eventTimedOut( false ),
+	_pErrorClientHandler( 0 ),
+	_theTimeOuts()
 {
-  userErrorHandler = new UserErrorHandler( client );
+	try
+	{
+		_pErrorClientHandler = new ErrorClientHandler( client );
+	}
+	catch ( std::bad_alloc )
+	{
+		client.onMemoryExhaustion( "Failed to allocate memory in OmmBaseImpl( ActiveConfig& , OmmNiProviderErrorClient& )" );
+	}
+
+	clearRsslErrorInfo( &_reactorDispatchErrorInfo );
 }
 
 OmmBaseImpl::~OmmBaseImpl()
 {
+	if ( _pErrorClientHandler )
+		delete _pErrorClientHandler;
 }
 
-void OmmBaseImpl::readConfig( EmaConfigImpl* configImpl )
+void OmmBaseImpl::readConfig( EmaConfigImpl* pConfigImpl )
 {
-  UInt64 id( OmmImplMap< OmmBaseImpl >::add( this ) );
-  _activeConfig.userName = configImpl->getUserName();
-  _activeConfig.loggerConfig.loggerName = configImpl->getLoggerName( _activeConfig.userName );
-  _activeConfig.dictionaryConfig.dictionaryName = configImpl->getDictionaryName( _activeConfig.userName );
-  _activeConfig.instanceName = _activeConfig.userName;
-  _activeConfig.instanceName.append("_").append(id);
+	UInt64 id( InstanceMap< OmmBaseImpl >::add( this ) );
 
-  UInt32 maxUInt32( 0xFFFFFFFF );
-  UInt64 tmp;
-  EmaString userNodeName( configImpl->getUserNodeName() );
-  userNodeName.append( _activeConfig.userName ).append( "|" );
-  if ( configImpl->get<UInt64>( userNodeName + "ItemCountHint", tmp ) )
-    _activeConfig.itemCountHint = static_cast<UInt32>( tmp > maxUInt32 ? maxUInt32 : tmp );
-	if (configImpl->get<UInt64>(userNodeName + "ServiceCountHint", tmp ) )
+	_activeConfig.configuredName = pConfigImpl->getConfiguredName();
+	_activeConfig.instanceName = _activeConfig.configuredName;
+	_activeConfig.instanceName.append( "_" ).append( id );
+
+	const UInt32 maxUInt32( 0xFFFFFFFF );
+	UInt64 tmp;
+	EmaString instanceNodeName( pConfigImpl->getInstanceNodeName() );
+	instanceNodeName.append( _activeConfig.configuredName ).append( "|" );
+
+	if ( pConfigImpl->get<UInt64>( instanceNodeName + "ItemCountHint", tmp ) )
+		_activeConfig.itemCountHint = static_cast<UInt32>( tmp > maxUInt32 ? maxUInt32 : tmp );
+
+	if ( pConfigImpl->get<UInt64>( instanceNodeName + "ServiceCountHint", tmp ) )
 		_activeConfig.serviceCountHint = static_cast<UInt32>( tmp > maxUInt32 ? maxUInt32 : tmp );
-	if ( configImpl->get<UInt64>(userNodeName + "ObeyOpenWindow", tmp ) )
-		_activeConfig.obeyOpenWindow = static_cast<UInt32>( tmp > 0 ? 1 : 0 );
-	if ( configImpl->get<UInt64>(userNodeName + "PostAckTimeout", tmp ) )
-		_activeConfig.postAckTimeout = static_cast<UInt32>( tmp > maxUInt32 ? maxUInt32 : tmp );
-	if ( configImpl->get<UInt64>(userNodeName + "RequestTimeout", tmp ) )
-		_activeConfig.requestTimeout = static_cast<UInt32>( tmp > maxUInt32 ? maxUInt32 : tmp );
-	if ( configImpl->get< UInt64 >( userNodeName + "LoginRequestTimeOut", tmp ) )
+
+	if ( pConfigImpl->get< UInt64 >( instanceNodeName + "LoginRequestTimeOut", tmp ) )
 		_activeConfig.loginRequestTimeOut = static_cast<UInt32>( tmp > maxUInt32 ? maxUInt32 : tmp );
-	if ( configImpl->get< UInt64 >( userNodeName + "DirectoryRequestTimeOut", tmp ) )
-		_activeConfig.directoryRequestTimeOut = static_cast<UInt32>( tmp > maxUInt32 ? maxUInt32 : tmp );
-	if ( configImpl->get< UInt64 >( userNodeName + "DictionaryRequestTimeOut", tmp ) )
+
+	if ( pConfigImpl->get< UInt64 >( instanceNodeName + "DictionaryRequestTimeOut", tmp ) )
 		_activeConfig.dictionaryRequestTimeOut = static_cast<UInt32>( tmp > maxUInt32 ? maxUInt32 : tmp );
-	if ( configImpl->get<UInt64>(userNodeName + "MaxOutstandingPosts", tmp ) )
-		_activeConfig.maxOutstandingPosts = static_cast<UInt32>( tmp > maxUInt32 ? maxUInt32 : tmp );
 
-	configImpl->get<Int64>( userNodeName + "DispatchTimeoutApiThread", _activeConfig.dispatchTimeoutApiThread );
+	pConfigImpl->get<Int64>( instanceNodeName + "DispatchTimeoutApiThread", _activeConfig.dispatchTimeoutApiThread );
 
-	if ( configImpl->get<UInt64>( userNodeName + "CatchUnhandledException", tmp ) )
+	if ( pConfigImpl->get<UInt64>( instanceNodeName + "CatchUnhandledException", tmp ) )
 		_activeConfig.catchUnhandledException = static_cast<UInt32>( tmp > 0 ? true : false );
-	if ( configImpl->get<UInt64>( userNodeName + "MaxDispatchCountApiThread", tmp ) )
-		_activeConfig.maxDispatchCountApiThread = static_cast<UInt32>( tmp > maxUInt32 ? maxUInt32 : tmp );
-	if ( configImpl->get<UInt64>(userNodeName + "MaxDispatchCountUserThread", tmp ) )
-		_activeConfig.maxDispatchCountUserThread = static_cast<UInt32>( tmp > maxUInt32 ? maxUInt32 : tmp );
-	configImpl->get<Int64>( userNodeName + "PipePort", _activeConfig.pipePort );
 
-	if ( _activeConfig.dictionaryConfig.dictionaryName.empty() )
+	if ( pConfigImpl->get<UInt64>( instanceNodeName + "MaxDispatchCountApiThread", tmp ) )
+		_activeConfig.maxDispatchCountApiThread = static_cast<UInt32>( tmp > maxUInt32 ? maxUInt32 : tmp );
+
+	if ( pConfigImpl->get<UInt64>( instanceNodeName + "MaxDispatchCountUserThread", tmp ) )
+		_activeConfig.maxDispatchCountUserThread = static_cast<UInt32>( tmp > maxUInt32 ? maxUInt32 : tmp );
+
+	pConfigImpl->get<Int64>( instanceNodeName + "PipePort", _activeConfig.pipePort );
+
+
+	pConfigImpl->getLoggerName( _activeConfig.configuredName, _activeConfig.loggerConfig.loggerName );
+
+	_activeConfig.loggerConfig.minLoggerSeverity = OmmLoggerClient::SuccessEnum;
+	_activeConfig.loggerConfig.loggerFileName = "emaLog";
+	_activeConfig.loggerConfig.loggerType = OmmLoggerClient::FileEnum;
+	_activeConfig.loggerConfig.includeDateInLoggerOutput = false;
+
+	if ( _activeConfig.loggerConfig.loggerName.length() )
 	{
-		_activeConfig.dictionaryConfig.dictionaryName.set("Dictionary");
-		_activeConfig.dictionaryConfig.dictionaryType = Dictionary::ChannelDictionaryEnum;
-		_activeConfig.dictionaryConfig.enumtypeDefFileName.clear();
-		_activeConfig.dictionaryConfig.rdmfieldDictionaryFileName.clear();
+		EmaString loggerNodeName( "LoggerGroup|LoggerList|Logger." );
+		loggerNodeName.append( _activeConfig.loggerConfig.loggerName ).append( "|" );
+
+		EmaString name;
+		if ( !pConfigImpl->get< EmaString >( loggerNodeName + "Name", name ) )
+		{
+			EmaString errorMsg( "no configuration exists for consumer logger [" );
+			errorMsg.append( loggerNodeName ).append( "]; will use logger defaults" );
+			pConfigImpl->appendConfigError( errorMsg, OmmLoggerClient::ErrorEnum );
+		}
+
+		pConfigImpl->get<OmmLoggerClient::LoggerType>( loggerNodeName + "LoggerType", _activeConfig.loggerConfig.loggerType );
+
+		if ( _activeConfig.loggerConfig.loggerType == OmmLoggerClient::FileEnum )
+			pConfigImpl->get<EmaString>( loggerNodeName + "FileName", _activeConfig.loggerConfig.loggerFileName );
+
+		pConfigImpl->get<OmmLoggerClient::Severity>( loggerNodeName + "LoggerSeverity", _activeConfig.loggerConfig.minLoggerSeverity );
+
+		UInt64 idilo( 0 );
+		if ( pConfigImpl->get< UInt64 >( loggerNodeName + "IncludeDateInLoggerOutput", idilo ) )
+			_activeConfig.loggerConfig.includeDateInLoggerOutput = idilo == 1 ? true : false ;
 	}
 	else
+		_activeConfig.loggerConfig.loggerName.set( "Logger" );
+
+	if ( ProgrammaticConfigure* ppc = pConfigImpl->getProgrammaticConfigure() )
 	{
-		EmaString dictionaryNodeName( "DictionaryGroup|DictionaryList|Dictionary." );
-		dictionaryNodeName.append( _activeConfig.dictionaryConfig.dictionaryName ).append("|");
-
-        EmaString name;
-        if ( !configImpl->get< EmaString >( dictionaryNodeName + "Name", name ) )
-		{
-			EmaString errorMsg( "no configuration exists for consumer dictionary [" );
-			errorMsg.append( dictionaryNodeName ).append( "]; will use dictionary defaults" );
-            configImpl->appendConfigError( errorMsg, OmmLoggerClient::ErrorEnum );
-		}
-
-		if ( !configImpl->get<Dictionary::DictionaryType>( dictionaryNodeName + "DictionaryType", _activeConfig.dictionaryConfig.dictionaryType ))
-			_activeConfig.dictionaryConfig.dictionaryType = Dictionary::ChannelDictionaryEnum;
-
-		if ( _activeConfig.dictionaryConfig.dictionaryType == Dictionary::FileDictionaryEnum )
-		{
-			if ( !configImpl->get<EmaString>( dictionaryNodeName + "RdmFieldDictionaryFileName", _activeConfig.dictionaryConfig.rdmfieldDictionaryFileName))
-				_activeConfig.dictionaryConfig.rdmfieldDictionaryFileName.set( "./RDMFieldDictionary" );
-			if ( !configImpl->get<EmaString>( dictionaryNodeName + "EnumTypeDefFileName", _activeConfig.dictionaryConfig.enumtypeDefFileName ) )
-				_activeConfig.dictionaryConfig.enumtypeDefFileName.set( "./enumtype.def" );
-		}
+		ppc->retrieveLoggerConfig( _activeConfig.loggerConfig.loggerName , _activeConfig );
 	}
-
-  _activeConfig.loggerConfig.minLoggerSeverity = OmmLoggerClient::SuccessEnum;
-  _activeConfig.loggerConfig.loggerFileName = "emaLog";
-  _activeConfig.loggerConfig.loggerType = OmmLoggerClient::FileEnum;
-  _activeConfig.loggerConfig.includeDateInLoggerOutput = false;
-
-
-  if ( _activeConfig.loggerConfig.loggerName.length() )
-    {
-      EmaString loggerNodeName( "LoggerGroup|LoggerList|Logger." );
-      loggerNodeName.append( _activeConfig.loggerConfig.loggerName ).append( "|" );
-        
-      EmaString name;
-      if (!configImpl->get< EmaString >( loggerNodeName + "Name", name ) )
-	{
-	  EmaString errorMsg( "no configuration exists for consumer logger [" );
-	  errorMsg.append( loggerNodeName ).append( "]; will use logger defaults" );
-	  configImpl->appendConfigError( errorMsg, OmmLoggerClient::ErrorEnum );
-	}
-
-      configImpl->get<OmmLoggerClient::LoggerType>( loggerNodeName + "LoggerType", _activeConfig.loggerConfig.loggerType );
-
-      if ( _activeConfig.loggerConfig.loggerType == OmmLoggerClient::FileEnum )
-	configImpl->get<EmaString>( loggerNodeName + "FileName", _activeConfig.loggerConfig.loggerFileName );
-
-      configImpl->get<OmmLoggerClient::Severity>(loggerNodeName + "LoggerSeverity", _activeConfig.loggerConfig.minLoggerSeverity);
-
-      UInt64 idilo(0);
-      if ( configImpl->get< UInt64 >( loggerNodeName + "IncludeDateInLoggerOutput", idilo) )
-	_activeConfig.loggerConfig.includeDateInLoggerOutput = idilo == 1 ? true : false ;
-    }
-  else
-    _activeConfig.loggerConfig.loggerName.set( "Logger" );
 
 	EmaString channelSet;
-	EmaString channelName = configImpl->getChannelName( _activeConfig.userName );
+	EmaString channelName;
+
+	pConfigImpl->getChannelName( _activeConfig.configuredName, channelName );
 
 	if ( channelName.trimWhitespace().empty() )
 	{
-		EmaString nodeName("ConsumerGroup|ConsumerList|Consumer.");
-                              nodeName.append( _activeConfig.userName );
-                              nodeName.append("|ChannelSet");
+		EmaString nodeName( "ConsumerGroup|ConsumerList|Consumer." );
+		nodeName.append( _activeConfig.configuredName );
+		nodeName.append( "|ChannelSet" );
 
-		if( configImpl->get<EmaString>( nodeName, channelSet ))
-		 {
-			char *pToken = NULL;
-			pToken = strtok(const_cast<char *>(channelSet.c_str()), ",");
-			do {				
-				if(pToken)
+		if ( pConfigImpl->get<EmaString>( nodeName, channelSet ) )
+		{
+			char* pToken = NULL;
+			pToken = strtok( const_cast<char*>( channelSet.c_str() ), "," );
+			do
+			{
+				if ( pToken )
 				{
 					channelName = pToken;
-					ChannelConfig *newChannelConfig= readChannelConfig(configImpl, (channelName.trimWhitespace()));
-					_activeConfig.configChannelSet.push_back(newChannelConfig);
+					ChannelConfig* newChannelConfig = readChannelConfig( pConfigImpl, ( channelName.trimWhitespace() ) );
+					_activeConfig.configChannelSet.push_back( newChannelConfig );
 
 				}
-				pToken = strtok(NULL, ",");
 
-			} while(pToken != NULL);
+				pToken = strtok( NULL, "," );
+			}
+			while ( pToken != NULL );
 		}
 		else
 		{
-			EmaString channelName = "Channel";
-			useDefaultConfigValues(channelName, configImpl->getUserSpecifiedHostname(), configImpl->getUserSpecifiedPort());
+			useDefaultConfigValues( EmaString( "Channel" ), pConfigImpl->getUserSpecifiedHostname(), pConfigImpl->getUserSpecifiedPort().userSpecifiedValue );
 		}
 	}
 	else
 	{
-		ChannelConfig *newChannelConfig = readChannelConfig(configImpl, (channelName.trimWhitespace()));
-		_activeConfig.configChannelSet.push_back(newChannelConfig);
+		ChannelConfig* newChannelConfig = readChannelConfig( pConfigImpl, ( channelName.trimWhitespace() ) );
+		_activeConfig.configChannelSet.push_back( newChannelConfig );
 	}
-	
-	if ( ProgrammaticConfigure *  const ppc  = configImpl->pProgrammaticConfigure() ) {
-	  ppc->retrieveUserConfig( _activeConfig.userName, _activeConfig );
-	  bool isProgmaticCfgChannelName = ppc->getActiveChannelName(_activeConfig.userName, channelName.trimWhitespace());
-	  bool isProgramatiCfgChannelset = ppc->getActiveChannelSet(_activeConfig.userName, channelSet.trimWhitespace());
-	  unsigned int posInProgCfg  = 0;
 
-		if( isProgmaticCfgChannelName )
+	if ( ProgrammaticConfigure* ppc  = pConfigImpl->getProgrammaticConfigure() )
+	{
+		ppc->retrieveUserConfig( _activeConfig.configuredName, _activeConfig );
+		bool isProgmaticCfgChannelName = ppc->getActiveChannelName( _activeConfig.configuredName, channelName.trimWhitespace() );
+		bool isProgramatiCfgChannelset = ppc->getActiveChannelSet( _activeConfig.configuredName, channelSet.trimWhitespace() );
+		unsigned int posInProgCfg  = 0;
+
+		if ( isProgmaticCfgChannelName )
 		{
 			_activeConfig.clearChannelSet();
-			ChannelConfig *fileChannelConfig = readChannelConfig(configImpl, (channelName.trimWhitespace()));
-			ppc->retrieveChannelConfig( channelName.trimWhitespace(), _activeConfig, configImpl->getUserSpecifiedHostname().length() > 0, fileChannelConfig );
-			if( !(ActiveConfig::findChannelConfig(_activeConfig.configChannelSet, channelName.trimWhitespace(), posInProgCfg) ) )
+			ChannelConfig* fileChannelConfig = readChannelConfig( pConfigImpl, ( channelName.trimWhitespace() ) );
+			ppc->retrieveChannelConfig( channelName.trimWhitespace(), _activeConfig, pConfigImpl->getUserSpecifiedHostname().length() > 0, fileChannelConfig );
+			if ( !( ActiveConfig::findChannelConfig( _activeConfig.configChannelSet, channelName.trimWhitespace(), posInProgCfg ) ) )
 				_activeConfig.configChannelSet.push_back( fileChannelConfig );
 			else
 			{
-				if( fileChannelConfig )
+				if ( fileChannelConfig )
 					delete fileChannelConfig;
 			}
 		}
-		else if(isProgramatiCfgChannelset)
+		else if ( isProgramatiCfgChannelset )
 		{
 			_activeConfig.configChannelSet.clear();
-			char *pToken = NULL;
-			pToken = strtok(const_cast<char *>(channelSet.c_str()), ",");
-			while(pToken != NULL)
+			char* pToken = NULL;
+			pToken = strtok( const_cast<char*>( channelSet.c_str() ), "," );
+			while ( pToken != NULL )
 			{
 				channelName = pToken;
-				ChannelConfig *fileChannelConfig = readChannelConfig(configImpl, (channelName.trimWhitespace()));
-				ppc->retrieveChannelConfig( channelName.trimWhitespace(), _activeConfig, configImpl->getUserSpecifiedHostname().length() > 0, fileChannelConfig );
-				if( !(ActiveConfig::findChannelConfig(_activeConfig.configChannelSet, channelName.trimWhitespace(), posInProgCfg) ) )
+				ChannelConfig* fileChannelConfig = readChannelConfig( pConfigImpl, ( channelName.trimWhitespace() ) );
+				ppc->retrieveChannelConfig( channelName.trimWhitespace(), _activeConfig, pConfigImpl->getUserSpecifiedHostname().length() > 0, fileChannelConfig );
+				if ( !( ActiveConfig::findChannelConfig( _activeConfig.configChannelSet, channelName.trimWhitespace(), posInProgCfg ) ) )
 					_activeConfig.configChannelSet.push_back( fileChannelConfig );
 				else
 				{
-					if( fileChannelConfig )
+					if ( fileChannelConfig )
 						delete fileChannelConfig;
 				}
 
-				pToken = strtok(NULL, ",");
+				pToken = strtok( NULL, "," );
 			}
 		}
-
-		ppc->retrieveLoggerConfig( _activeConfig.loggerConfig.loggerName , _activeConfig );
-		ppc->retrieveDictionaryConfig( _activeConfig.dictionaryConfig.dictionaryName, _activeConfig );
 	}
 
-	if( _activeConfig.configChannelSet.size() == 0 ) {
-		EmaString channelName("Channel");
-		useDefaultConfigValues(channelName, configImpl->getUserSpecifiedHostname(), configImpl->getUserSpecifiedPort());
+	if ( _activeConfig.configChannelSet.size() == 0 )
+	{
+		EmaString channelName( "Channel" );
+		useDefaultConfigValues( channelName, pConfigImpl->getUserSpecifiedHostname(), pConfigImpl->getUserSpecifiedPort().userSpecifiedValue );
 	}
-	_activeConfig.userDispatch = configImpl->getOperationModel();
-	_activeConfig.pRsslRDMLoginReq = configImpl->getLoginReq();
-	_activeConfig.pRsslDirectoryRequestMsg = configImpl->getDirectoryReq();
-	_activeConfig.pRsslEnumDefRequestMsg = configImpl->getEnumDefDictionaryReq();
-	_activeConfig.pRsslRdmFldRequestMsg = configImpl->getRdmFldDictionaryReq();
+
+	_activeConfig.pRsslRDMLoginReq = pConfigImpl->getLoginReq();
+
 	catchUnhandledException( _activeConfig.catchUnhandledException );
 }
 
-void OmmBaseImpl::useDefaultConfigValues( const EmaString &channelName, const EmaString &host, const EmaString &port )
+void OmmBaseImpl::useDefaultConfigValues( const EmaString& channelName, const EmaString& host, const EmaString& port )
 {
-	SocketChannelConfig *newChannelConfig =  0;
-	try {
-		newChannelConfig = new SocketChannelConfig();
+	SocketChannelConfig* newChannelConfig =  0;
+	try
+	{
+		newChannelConfig = new SocketChannelConfig( getActiveConfig().defaultServiceName() );
 		if ( host.length() )
 			newChannelConfig->hostName = host;
+
 		if ( port.length() )
 			newChannelConfig->serviceName = port;
+
 		newChannelConfig->name.set( channelName );
-		_activeConfig.configChannelSet.push_back(newChannelConfig);
+		_activeConfig.configChannelSet.push_back( newChannelConfig );
 	}
 	catch ( std::bad_alloc )
 	{
@@ -348,235 +353,226 @@ void OmmBaseImpl::useDefaultConfigValues( const EmaString &channelName, const Em
 	}
 }
 
-ChannelConfig*  OmmBaseImpl::readChannelConfig(EmaConfigImpl* pConfigImpl, const EmaString&  channelName)
+ChannelConfig* OmmBaseImpl::readChannelConfig( EmaConfigImpl* pConfigImpl, const EmaString&  channelName )
 {
-	ChannelConfig *newChannelConfig = NULL;
+	ChannelConfig* newChannelConfig = NULL;
 	UInt32 maxUInt32( 0xFFFFFFFF );
 	EmaString channelNodeName( "ChannelGroup|ChannelList|Channel." );
-	channelNodeName.append( channelName ).append("|");
+	channelNodeName.append( channelName ).append( "|" );
 
 	RsslConnectionTypes channelType;
 	if ( !pConfigImpl->get<RsslConnectionTypes>( channelNodeName + "ChannelType", channelType ) ||
-		pConfigImpl->getUserSpecifiedHostname().length() > 0 )
+	     pConfigImpl->getUserSpecifiedHostname().length() > 0 )
 		channelType = RSSL_CONN_TYPE_SOCKET;
 
 	switch ( channelType )
 	{
 	case RSSL_CONN_TYPE_SOCKET:
+	{
+		SocketChannelConfig* socketChannelCfg = NULL;
+		try
 		{
-			SocketChannelConfig *socketChannelCfg = NULL;
-			try {
-				socketChannelCfg = new SocketChannelConfig();
-				newChannelConfig = socketChannelCfg;
-			}
-			catch ( std::bad_alloc )
-			{
-				const char* temp( "Failed to allocate memory for SocketChannelConfig. (std::bad_alloc)" );
-				throwMeeException( temp );
-				return 0;
-			}
-
-			if ( !socketChannelCfg)
-			{
-				const char* temp = "Failed to allocate memory for SocketChannelConfig. (null ptr)";
-				throwMeeException(temp);
-				return 0;
-			}
-
-			EmaString  tmp = pConfigImpl->getUserSpecifiedHostname() ;
-			if ( tmp.length() )
-				socketChannelCfg->hostName = tmp;
-			else
-				pConfigImpl->get< EmaString >( channelNodeName + "Host", socketChannelCfg->hostName );
-				
-			tmp = pConfigImpl->getUserSpecifiedPort();
-			if ( tmp.length() )
-				socketChannelCfg->serviceName = tmp;
-			else
-				pConfigImpl->get< EmaString >( channelNodeName + "Port", socketChannelCfg->serviceName );
-
-			UInt64 tempUInt = 1;
-			pConfigImpl->get<UInt64>( channelNodeName + "TcpNodelay", tempUInt );
-			if ( tempUInt )
-				socketChannelCfg->tcpNodelay = RSSL_TRUE;
-			else
-				socketChannelCfg->tcpNodelay = RSSL_FALSE;
-			
-			break;
+		  socketChannelCfg = new SocketChannelConfig( getActiveConfig().defaultServiceName() );
+			newChannelConfig = socketChannelCfg;
 		}
+		catch ( std::bad_alloc )
+		{
+			const char* temp( "Failed to allocate memory for SocketChannelConfig. (std::bad_alloc)" );
+			throwMeeException( temp );
+			return 0;
+		}
+
+		if ( !socketChannelCfg )
+		{
+			const char* temp = "Failed to allocate memory for SocketChannelConfig. (null ptr)";
+			throwMeeException( temp );
+			return 0;
+		}
+
+		EmaString  tmp = pConfigImpl->getUserSpecifiedHostname() ;
+		if ( tmp.length() )
+			socketChannelCfg->hostName = tmp;
+		else
+			pConfigImpl->get< EmaString >( channelNodeName + "Host", socketChannelCfg->hostName );
+
+		PortSetViaFunctionCall psvfc( pConfigImpl->getUserSpecifiedPort() );
+		if ( psvfc.userSet ) {
+		  if ( psvfc.userSpecifiedValue.length() )
+		    socketChannelCfg->serviceName = psvfc.userSpecifiedValue;
+		  else
+		    socketChannelCfg->serviceName = _activeConfig.defaultServiceName();
+		}
+		else
+			pConfigImpl->get< EmaString >( channelNodeName + "Port", socketChannelCfg->serviceName );
+
+		UInt64 tempUInt = 1;
+		pConfigImpl->get<UInt64>( channelNodeName + "TcpNodelay", tempUInt );
+		if ( tempUInt )
+			socketChannelCfg->tcpNodelay = RSSL_TRUE;
+		else
+			socketChannelCfg->tcpNodelay = RSSL_FALSE;
+
+		break;
+	}
 	case RSSL_CONN_TYPE_HTTP:
+	{
+		HttpChannelConfig* httpChannelCfg = NULL;
+		try
 		{
-			HttpChannelConfig *httpChannelCfg = NULL;
-			try {
-				httpChannelCfg = new HttpChannelConfig();
-				newChannelConfig = httpChannelCfg;
-			}
-			catch ( std::bad_alloc )
-			{
-				const char* temp( "Failed to allocate memory for HttpChannelConfig. (std::bad_alloc)" );
-				throwMeeException( temp );
-				return 0;
-			}
-
-			if ( !httpChannelCfg )
-			{
-				const char* temp = "Failed to allocate memory for HttpChannelConfig. (null ptr)";
-				throwMeeException(temp);
-				return 0;
-			}
-
-			pConfigImpl->get<EmaString>(channelNodeName + "Host", httpChannelCfg->hostName);
-
-			pConfigImpl->get<EmaString>(channelNodeName + "Port", httpChannelCfg->serviceName);
-
-			UInt64 tempUInt = 1;
-			pConfigImpl->get<UInt64>(channelNodeName + "TcpNodelay", tempUInt);
-			if (!tempUInt)
-				httpChannelCfg->tcpNodelay = RSSL_FALSE;
-			else
-				httpChannelCfg->tcpNodelay = RSSL_TRUE;
-
-			pConfigImpl->get<EmaString>(channelNodeName + "ObjectName", httpChannelCfg->objectName);
-
-			break;
+			httpChannelCfg = new HttpChannelConfig();
+			newChannelConfig = httpChannelCfg;
 		}
+		catch ( std::bad_alloc )
+		{
+			const char* temp( "Failed to allocate memory for HttpChannelConfig. (std::bad_alloc)" );
+			throwMeeException( temp );
+			return 0;
+		}
+
+		if ( !httpChannelCfg )
+		{
+			const char* temp = "Failed to allocate memory for HttpChannelConfig. (null ptr)";
+			throwMeeException( temp );
+			return 0;
+		}
+
+		pConfigImpl->get<EmaString>( channelNodeName + "Host", httpChannelCfg->hostName );
+
+		pConfigImpl->get<EmaString>( channelNodeName + "Port", httpChannelCfg->serviceName );
+
+		UInt64 tempUInt = 1;
+		pConfigImpl->get<UInt64>( channelNodeName + "TcpNodelay", tempUInt );
+		if ( !tempUInt )
+			httpChannelCfg->tcpNodelay = RSSL_FALSE;
+		else
+			httpChannelCfg->tcpNodelay = RSSL_TRUE;
+
+		pConfigImpl->get<EmaString>( channelNodeName + "ObjectName", httpChannelCfg->objectName );
+
+		break;
+	}
 	case RSSL_CONN_TYPE_ENCRYPTED:
+	{
+		EncryptedChannelConfig* encriptedChannelCfg = NULL;
+		try
 		{
-			EncryptedChannelConfig *encriptedChannelCfg = NULL;
-			try {
-				encriptedChannelCfg = new EncryptedChannelConfig();
-				newChannelConfig = encriptedChannelCfg;
-			}
-			catch ( std::bad_alloc )
-			{
-				const char* temp( "Failed to allocate memory for EncryptedChannelConfig. (std::bad_alloc)" );
-				throwMeeException( temp );
-				return 0;
-			}
-
-			if ( !newChannelConfig)
-			{
-				const char* temp = "Failed to allocate memory for EncryptedChannelConfig. (null ptr)";
-				throwMeeException(temp);
-				return 0;
-			}
-
-			pConfigImpl->get<EmaString>( channelNodeName + "Host", encriptedChannelCfg->hostName);
-
-			pConfigImpl->get<EmaString>( channelNodeName + "Port", encriptedChannelCfg->serviceName);
-
-			UInt64 tempUInt = 1;
-			pConfigImpl->get<UInt64>( channelNodeName + "TcpNodelay", tempUInt );
-			if ( tempUInt )
-				encriptedChannelCfg->tcpNodelay = RSSL_TRUE;
-			else
-				encriptedChannelCfg->tcpNodelay = RSSL_FALSE;
-
-			pConfigImpl->get<EmaString>(channelNodeName + "ObjectName", encriptedChannelCfg->objectName);
-
-			break;
+			encriptedChannelCfg = new EncryptedChannelConfig();
+			newChannelConfig = encriptedChannelCfg;
 		}
+		catch ( std::bad_alloc )
+		{
+			const char* temp( "Failed to allocate memory for EncryptedChannelConfig. (std::bad_alloc)" );
+			throwMeeException( temp );
+			return 0;
+		}
+
+		if ( !newChannelConfig )
+		{
+			const char* temp = "Failed to allocate memory for EncryptedChannelConfig. (null ptr)";
+			throwMeeException( temp );
+			return 0;
+		}
+
+		pConfigImpl->get<EmaString>( channelNodeName + "Host", encriptedChannelCfg->hostName );
+
+		pConfigImpl->get<EmaString>( channelNodeName + "Port", encriptedChannelCfg->serviceName );
+
+		UInt64 tempUInt = 1;
+		pConfigImpl->get<UInt64>( channelNodeName + "TcpNodelay", tempUInt );
+		if ( tempUInt )
+			encriptedChannelCfg->tcpNodelay = RSSL_TRUE;
+		else
+			encriptedChannelCfg->tcpNodelay = RSSL_FALSE;
+
+		pConfigImpl->get<EmaString>( channelNodeName + "ObjectName", encriptedChannelCfg->objectName );
+
+		break;
+	}
 	case RSSL_CONN_TYPE_RELIABLE_MCAST:
 	{
-			ReliableMcastChannelConfig *relMcastChannelCfg = NULL;
-			try {
-				relMcastChannelCfg = new ReliableMcastChannelConfig();
-				newChannelConfig = relMcastChannelCfg;
-			}
-			catch ( std::bad_alloc )
-			{
-				const char* temp( "Failed to allocate memory for ReliableMcastChannelConfig. (std::bad_alloc)" );
-				throwMeeException( temp );
-				return 0;
-			}
-
-			if ( !newChannelConfig)
-			{
-				const char* temp = "Failed to allocate memory for ReliableMcastChannelConfig. (null ptr)";
-				throwMeeException(temp);
-				return 0;
-			}
-			EmaString errorMsg;
-			if(!readReliableMcastConfig(pConfigImpl, channelNodeName, relMcastChannelCfg, errorMsg))
-			{
-				throwIceException(errorMsg);
-				return 0;
-			}
-			break;
-		}
-	default:
+		ReliableMcastChannelConfig* relMcastChannelCfg = NULL;
+		try
 		{
-		EmaString temp( "Not supported channel type. Type = " );
-		temp.append( (UInt32)channelType );
-		throwIueException(temp);
-		return 0;
+			relMcastChannelCfg = new ReliableMcastChannelConfig();
+			newChannelConfig = relMcastChannelCfg;
 		}
+		catch ( std::bad_alloc )
+		{
+			const char* temp( "Failed to allocate memory for ReliableMcastChannelConfig. (std::bad_alloc)" );
+			throwMeeException( temp );
+			return 0;
+		}
+
+		if ( !newChannelConfig )
+		{
+			const char* temp = "Failed to allocate memory for ReliableMcastChannelConfig. (null ptr)";
+			throwMeeException( temp );
+			return 0;
+		}
+		EmaString errorMsg;
+		if ( !readReliableMcastConfig( pConfigImpl, channelNodeName, relMcastChannelCfg, errorMsg ) )
+		{
+			throwIceException( errorMsg );
+			return 0;
+		}
+		break;
 	}
-	
+	default:
+	{
+		EmaString temp( "Not supported channel type. Type = " );
+		temp.append( ( UInt32 )channelType );
+		throwIueException( temp );
+		return 0;
+	}
+	}
 
 	newChannelConfig->name = channelName;
 
 	pConfigImpl->get<EmaString>( channelNodeName + "InterfaceName", newChannelConfig->interfaceName );
 
 	UInt64 tempUInt = 0;
-	if(channelType != RSSL_CONN_TYPE_RELIABLE_MCAST)
+	if ( channelType != RSSL_CONN_TYPE_RELIABLE_MCAST )
 	{
 		pConfigImpl->get<RsslCompTypes>( channelNodeName + "CompressionType", newChannelConfig->compressionType );
-	
+
 		tempUInt = 0;
-		if (pConfigImpl->get<UInt64>( channelNodeName + "CompressionThreshold", tempUInt ) )
+		if ( pConfigImpl->get<UInt64>( channelNodeName + "CompressionThreshold", tempUInt ) )
 		{
-			newChannelConfig->compressionThreshold = tempUInt > maxUInt32 ? maxUInt32 : (UInt32)tempUInt;
-		}		
+			newChannelConfig->compressionThreshold = tempUInt > maxUInt32 ? maxUInt32 : ( UInt32 )tempUInt;
+		}
 	}
 
 	tempUInt = 0;
-	if (pConfigImpl->get<UInt64>( channelNodeName + "GuaranteedOutputBuffers", tempUInt ) )
-	{
+	if ( pConfigImpl->get<UInt64>( channelNodeName + "GuaranteedOutputBuffers", tempUInt ) )
 		newChannelConfig->setGuaranteedOutputBuffers( tempUInt );
-	}
 
 	tempUInt = 0;
-	if (pConfigImpl->get<UInt64>( channelNodeName + "NumInputBuffers", tempUInt ) )
-	{
+	if ( pConfigImpl->get<UInt64>( channelNodeName + "NumInputBuffers", tempUInt ) )
 		newChannelConfig->setNumInputBuffers( tempUInt );
-	}
 
 	tempUInt = 0;
 	if ( pConfigImpl->get<UInt64>( channelNodeName + "ConnectionPingTimeout", tempUInt ) )
-	{
-		newChannelConfig->connectionPingTimeout = tempUInt > maxUInt32 ? maxUInt32 : (UInt32)tempUInt;
-	}
+		newChannelConfig->connectionPingTimeout = tempUInt > maxUInt32 ? maxUInt32 : ( UInt32 )tempUInt;
 
 	tempUInt = 0;
 	if ( pConfigImpl->get<UInt64>( channelNodeName + "SysRecvBufSize", tempUInt ) )
-	{
-		newChannelConfig->sysRecvBufSize = tempUInt > maxUInt32 ? maxUInt32 : (UInt32)tempUInt;
-	}
+		newChannelConfig->sysRecvBufSize = tempUInt > maxUInt32 ? maxUInt32 : ( UInt32 )tempUInt;
 
 	tempUInt = 0;
 	if ( pConfigImpl->get<UInt64>( channelNodeName + "SysSendBufSize", tempUInt ) )
-	{
-		newChannelConfig->sysSendBufSize = tempUInt > maxUInt32 ? maxUInt32 : (UInt32)tempUInt;
-	}
+		newChannelConfig->sysSendBufSize = tempUInt > maxUInt32 ? maxUInt32 : ( UInt32 )tempUInt;
 
 	Int64 tempInt = -1;
 	if ( pConfigImpl->get<Int64>( channelNodeName + "ReconnectAttemptLimit", tempInt ) )
-	{
 		newChannelConfig->setReconnectAttemptLimit( tempInt );
-	}
 
 	tempInt = 0;
 	if ( pConfigImpl->get<Int64>( channelNodeName + "ReconnectMinDelay", tempInt ) )
-	{
 		newChannelConfig->setReconnectMinDelay( tempInt );
-	}
-		
+
 	tempInt = 0;
 	if ( pConfigImpl->get<Int64>( channelNodeName + "ReconnectMaxDelay", tempInt ) )
-	{
 		newChannelConfig->setReconnectMaxDelay( tempInt );
-	}
 
 	pConfigImpl->get<EmaString>( channelNodeName + "XmlTraceFileName", newChannelConfig->xmlTraceFileName );
 
@@ -592,8 +588,7 @@ ChannelConfig*  OmmBaseImpl::readChannelConfig(EmaConfigImpl* pConfigImpl, const
 
 	tempUInt = 0;
 	pConfigImpl->get<UInt64>( channelNodeName + "XmlTraceToStdout", tempUInt );
-	if ( tempUInt > 0 )
-		newChannelConfig->xmlTraceToStdout = true;
+	newChannelConfig->xmlTraceToStdout = tempUInt > 0 ? true : false;
 
 	tempUInt = 0;
 	pConfigImpl->get<UInt64>( channelNodeName + "XmlTraceToMultipleFiles", tempUInt );
@@ -602,7 +597,7 @@ ChannelConfig*  OmmBaseImpl::readChannelConfig(EmaConfigImpl* pConfigImpl, const
 
 	tempUInt = 1;
 	pConfigImpl->get<UInt64>( channelNodeName + "XmlTraceWrite", tempUInt );
-	if (tempUInt == 0)
+	if ( tempUInt == 0 )
 		newChannelConfig->xmlTraceWrite = false;
 
 	tempUInt = 1;
@@ -610,52 +605,60 @@ ChannelConfig*  OmmBaseImpl::readChannelConfig(EmaConfigImpl* pConfigImpl, const
 	if ( tempUInt == 0 )
 		newChannelConfig->xmlTraceRead = false;
 
+	tempUInt = 0;
+	pConfigImpl->get<UInt64>( channelNodeName + "XmlTracePing", tempUInt );
+	newChannelConfig->xmlTracePing = tempUInt == 0 ? false : true;
+
+	tempUInt = 0;
+	pConfigImpl->get<UInt64>( channelNodeName + "XmlTraceHex", tempUInt );
+	newChannelConfig->xmlTraceHex = tempUInt == 0 ? false : true;
+
 	tempUInt = 1;
 	pConfigImpl->get<UInt64>( channelNodeName + "MsgKeyInUpdates", tempUInt );
 	if ( tempUInt == 0 )
-		newChannelConfig->msgKeyInUpdates = false;	
+		newChannelConfig->msgKeyInUpdates = false;
 
 	return newChannelConfig;
 }
 
-bool OmmBaseImpl::readReliableMcastConfig(EmaConfigImpl* pConfigImpl, const EmaString& channNodeName, ReliableMcastChannelConfig *relMcastChannelCfg, EmaString& errorText)
+bool OmmBaseImpl::readReliableMcastConfig( EmaConfigImpl* pConfigImpl, const EmaString& channNodeName, ReliableMcastChannelConfig* relMcastChannelCfg, EmaString& errorText )
 {
-	EmaString channelNodeName(channNodeName);
+	EmaString channelNodeName( channNodeName );
 
-	pConfigImpl->get<EmaString>( channelNodeName + "RecvAddress", relMcastChannelCfg->recvAddress);
-	if(	 relMcastChannelCfg->recvAddress.empty() )
+	pConfigImpl->get<EmaString>( channelNodeName + "RecvAddress", relMcastChannelCfg->recvAddress );
+	if ( relMcastChannelCfg->recvAddress.empty() )
 	{
 		errorText.clear();
 		errorText.append( "Invalid Channel Configuration for ChannelType [RSSL_RELIABLE_MCAST]. Missing required parameter [RecvAddress]." );
 		return false;
 	}
 
-	pConfigImpl->get<EmaString>( channelNodeName + "RecvServiceName", relMcastChannelCfg->recvServiceName);
-	if( relMcastChannelCfg->recvServiceName.empty() )
+	pConfigImpl->get<EmaString>( channelNodeName + "RecvServiceName", relMcastChannelCfg->recvServiceName );
+	if ( relMcastChannelCfg->recvServiceName.empty() )
 	{
 		errorText.clear();
 		errorText.append( "Invalid Channel Configuration for ChannelType [RSSL_RELIABLE_MCAST]. Missing required parameter [RecvServiceName]." );
 		return false;
 	}
 
-	pConfigImpl->get<EmaString>( channelNodeName + "UnicastServiceName", relMcastChannelCfg->unicastServiceName);
-	if( relMcastChannelCfg->unicastServiceName.empty() )
+	pConfigImpl->get<EmaString>( channelNodeName + "UnicastServiceName", relMcastChannelCfg->unicastServiceName );
+	if ( relMcastChannelCfg->unicastServiceName.empty() )
 	{
 		errorText.clear();
 		errorText.append( "Invalid Channel Configuration for ChannelType [RSSL_RELIABLE_MCAST]. Missing required parameter [UnicastServiceName]." );
 		return false;
 	}
 
-	pConfigImpl->get<EmaString>( channelNodeName + "SendAddress", relMcastChannelCfg->sendAddress);
-	if( relMcastChannelCfg->sendAddress.empty() )
+	pConfigImpl->get<EmaString>( channelNodeName + "SendAddress", relMcastChannelCfg->sendAddress );
+	if ( relMcastChannelCfg->sendAddress.empty() )
 	{
 		errorText.clear();
 		errorText.append( "Invalid Channel Configuration for ChannelType [RSSL_RELIABLE_MCAST]. Missing required parameter [SendAddress]." );
 		return false;
 	}
 
-	pConfigImpl->get<EmaString>( channelNodeName + "SendServiceName", relMcastChannelCfg->sendServiceName);
-	if( relMcastChannelCfg->sendServiceName.empty())
+	pConfigImpl->get<EmaString>( channelNodeName + "SendServiceName", relMcastChannelCfg->sendServiceName );
+	if ( relMcastChannelCfg->sendServiceName.empty() )
 	{
 		errorText.clear();
 		errorText.append( "Invalid Channel Configuration for ChannelType [RSSL_RELIABLE_MCAST]. Missing required parameter [SendServiceName]." );
@@ -664,61 +667,76 @@ bool OmmBaseImpl::readReliableMcastConfig(EmaConfigImpl* pConfigImpl, const EmaS
 
 	UInt64 tempUIntval = 0;
 	pConfigImpl->get<UInt64>( channelNodeName + "DisconnectOnGap", tempUIntval );
-	relMcastChannelCfg->disconnectOnGap = (tempUIntval) ? true : false;
-		
+	relMcastChannelCfg->disconnectOnGap = ( tempUIntval ) ? true : false;
+
 	tempUIntval = 0;
 	pConfigImpl->get<UInt64>( channelNodeName + "PacketTTL", tempUIntval );
-	relMcastChannelCfg->setPacketTTL(tempUIntval);
-			
-	pConfigImpl->get<EmaString>( channelNodeName + "HsmInterface", relMcastChannelCfg->hsmInterface);
-	pConfigImpl->get<EmaString>( channelNodeName + "HsmMultAddress", relMcastChannelCfg->hsmMultAddress);
-	pConfigImpl->get<EmaString>( channelNodeName + "HsmPort", relMcastChannelCfg->hsmPort);
+	relMcastChannelCfg->setPacketTTL( tempUIntval );
+
+	pConfigImpl->get<EmaString>( channelNodeName + "HsmInterface", relMcastChannelCfg->hsmInterface );
+	pConfigImpl->get<EmaString>( channelNodeName + "HsmMultAddress", relMcastChannelCfg->hsmMultAddress );
+	pConfigImpl->get<EmaString>( channelNodeName + "HsmPort", relMcastChannelCfg->hsmPort );
+
 	tempUIntval = 0;
 	pConfigImpl->get<UInt64>( channelNodeName + "HsmInterval", tempUIntval );
-	relMcastChannelCfg->setHsmInterval(tempUIntval);
+	relMcastChannelCfg->setHsmInterval( tempUIntval );
+
 	tempUIntval = 0;
 	pConfigImpl->get<UInt64>( channelNodeName + "ndata", tempUIntval );
-	relMcastChannelCfg->setNdata(tempUIntval);
+	relMcastChannelCfg->setNdata( tempUIntval );
+
 	tempUIntval = 0;
 	pConfigImpl->get<UInt64>( channelNodeName + "nmissing", tempUIntval );
-	relMcastChannelCfg->setNmissing(tempUIntval);
+	relMcastChannelCfg->setNmissing( tempUIntval );
+
 	tempUIntval = 0;
 	pConfigImpl->get<UInt64>( channelNodeName + "nrreq", tempUIntval );
-	relMcastChannelCfg->setNrreq(tempUIntval);
+	relMcastChannelCfg->setNrreq( tempUIntval );
+
 	tempUIntval = 0;
 	pConfigImpl->get<UInt64>( channelNodeName + "tdata", tempUIntval );
-	relMcastChannelCfg->setTdata(tempUIntval);
+	relMcastChannelCfg->setTdata( tempUIntval );
+
 	tempUIntval = 0;
 	pConfigImpl->get<UInt64>( channelNodeName + "trreq", tempUIntval );
-	relMcastChannelCfg->setTrreq(tempUIntval);
+	relMcastChannelCfg->setTrreq( tempUIntval );
+
 	tempUIntval = 0;
 	pConfigImpl->get<UInt64>( channelNodeName + "pktPoolLimitHigh", tempUIntval );
-	relMcastChannelCfg->setPktPoolLimitHigh(tempUIntval);
+	relMcastChannelCfg->setPktPoolLimitHigh( tempUIntval );
+
 	tempUIntval = 0;
 	pConfigImpl->get<UInt64>( channelNodeName + "pktPoolLimitLow", tempUIntval );
-	relMcastChannelCfg->setPktPoolLimitLow(tempUIntval);
+	relMcastChannelCfg->setPktPoolLimitLow( tempUIntval );
+
 	tempUIntval = 0;
 	pConfigImpl->get<UInt64>( channelNodeName + "twait", tempUIntval );
-	relMcastChannelCfg->setTwait(tempUIntval);
+	relMcastChannelCfg->setTwait( tempUIntval );
+
 	tempUIntval = 0;
 	pConfigImpl->get<UInt64>( channelNodeName + "tbchold", tempUIntval );
-	relMcastChannelCfg->setTbchold(tempUIntval);
+	relMcastChannelCfg->setTbchold( tempUIntval );
+
 	tempUIntval = 0;
 	pConfigImpl->get<UInt64>( channelNodeName + "tpphold", tempUIntval );
-	relMcastChannelCfg->setTpphold(tempUIntval);
+	relMcastChannelCfg->setTpphold( tempUIntval );
+
 	tempUIntval = 0;
 	pConfigImpl->get<UInt64>( channelNodeName + "userQLimit", tempUIntval );
-	relMcastChannelCfg->setUserQLimit(tempUIntval);
+	relMcastChannelCfg->setUserQLimit( tempUIntval );
 
 	return true;
 }
 
 void OmmBaseImpl::initialize( EmaConfigImpl* configImpl )
 {
-	try {
+	try
+	{
 		_userLock.lock();
 
 		readConfig( configImpl );
+
+		readCustomConfig( configImpl );
 
 		_pLoggerClient = OmmLoggerClient::create( _activeConfig );
 
@@ -741,47 +759,48 @@ void OmmBaseImpl::initialize( EmaConfigImpl* configImpl )
 		RsslRet retCode = rsslInitialize( RSSL_LOCK_GLOBAL_AND_CHANNEL, &rsslError );
 		if ( retCode != RSSL_RET_SUCCESS )
 		{
-			EmaString temp( "rsslInitialize() failed while initializing OmmConsumer." );
+			EmaString temp( "rsslInitialize() failed while initializing OmmBaseImpl." );
 			temp.append( " Internal sysError='" ).append( rsslError.sysError )
-				.append( "' Error text='" ).append( rsslError.text ).append( "'. " );
+			.append( "' Error text='" ).append( rsslError.text ).append( "'. " );
 
 			if ( OmmLoggerClient::ErrorEnum >= _activeConfig.loggerConfig.minLoggerSeverity )
-				_pLoggerClient->log(_activeConfig.instanceName, OmmLoggerClient::ErrorEnum, temp);
+				_pLoggerClient->log( _activeConfig.instanceName, OmmLoggerClient::ErrorEnum, temp );
 			throwIueException( temp );
 			return;
 		}
 		else if ( OmmLoggerClient::VerboseEnum >= _activeConfig.loggerConfig.minLoggerSeverity )
 		{
 			EmaString temp( "Successfully initialized Rssl." );
-			_pLoggerClient->log(_activeConfig.instanceName, OmmLoggerClient::VerboseEnum, temp);
+			_pLoggerClient->log( _activeConfig.instanceName, OmmLoggerClient::VerboseEnum, temp );
 		}
 
 		_state = RsslInitilizedEnum;
 
 		RsslCreateReactorOptions reactorOpts;
 		RsslErrorInfo rsslErrorInfo;
+		clearRsslErrorInfo( &rsslErrorInfo );
 
 		rsslClearCreateReactorOptions( &reactorOpts );
 
-		reactorOpts.userSpecPtr = (void*)this;
+		reactorOpts.userSpecPtr = ( void* )this;
 
 		_pRsslReactor = rsslCreateReactor( &reactorOpts, &rsslErrorInfo );
 		if ( !_pRsslReactor )
 		{
-			EmaString temp( "Failed to initialize OmmConsumer (rsslCreateReactor)." );
+			EmaString temp( "Failed to initialize OmmBaseImpl (rsslCreateReactor)." );
 			temp.append( "' Error Id='" ).append( rsslErrorInfo.rsslError.rsslErrorId )
-				.append( "' Internal sysError='" ).append( rsslErrorInfo.rsslError.sysError )
-				.append( "' Error Location='" ).append( rsslErrorInfo.errorLocation )
-				.append( "' Error Text='" ).append( rsslErrorInfo.rsslError.text ).append( "'. " );
+			.append( "' Internal sysError='" ).append( rsslErrorInfo.rsslError.sysError )
+			.append( "' Error Location='" ).append( rsslErrorInfo.errorLocation )
+			.append( "' Error Text='" ).append( rsslErrorInfo.rsslError.text ).append( "'. " );
 			if ( OmmLoggerClient::ErrorEnum >= _activeConfig.loggerConfig.minLoggerSeverity )
-				_pLoggerClient->log(_activeConfig.instanceName, OmmLoggerClient::ErrorEnum, temp);
+				_pLoggerClient->log( _activeConfig.instanceName, OmmLoggerClient::ErrorEnum, temp );
 			throwIueException( temp );
 			return;
 		}
 		else if ( OmmLoggerClient::VerboseEnum >= _activeConfig.loggerConfig.minLoggerSeverity )
 		{
 			EmaString temp( "Successfully created Reactor." );
-			_pLoggerClient->log(_activeConfig.instanceName, OmmLoggerClient::VerboseEnum, temp);
+			_pLoggerClient->log( _activeConfig.instanceName, OmmLoggerClient::VerboseEnum, temp );
 		}
 
 		_state = ReactorInitializedEnum;
@@ -796,18 +815,16 @@ void OmmBaseImpl::initialize( EmaConfigImpl* configImpl )
 		_eventFdsCapacity = 8;
 		_eventFds = new pollfd[ _eventFdsCapacity ];
 		_eventFdsCount = 0;
-		pipeReadEventFdsIdx = addFd( _pipe.readFD() );
+		_pipeReadEventFdsIdx = addFd( _pipe.readFD() );
 		addFd( _pRsslReactor->eventFd );
 #endif
 
 		_pLoginCallbackClient = LoginCallbackClient::create( *this );
 		_pLoginCallbackClient->initialize();
 
-		_pDictionaryCallbackClient = DictionaryCallbackClient::create( *this );
-		_pDictionaryCallbackClient->initialize();
+		createDictionaryCallbackClient( _pDictionaryCallbackClient, *this );
 
-		_pDirectoryCallbackClient = DirectoryCallbackClient::create( *this );
-		_pDirectoryCallbackClient->initialize();
+		createDirectoryCallbackClient( _pDirectoryCallbackClient, *this );
 
 		_pItemCallbackClient = ItemCallbackClient::create( *this );
 		_pItemCallbackClient->initialize();
@@ -817,11 +834,13 @@ void OmmBaseImpl::initialize( EmaConfigImpl* configImpl )
 
 		UInt64 timeOutLengthInMicroSeconds = _activeConfig.loginRequestTimeOut * 1000;
 		_eventTimedOut = false;
-		TimeOut * loginWatcher( new TimeOut ( *this, timeOutLengthInMicroSeconds, &OmmBaseImpl::terminateIf, reinterpret_cast< void * >( this ), true ) );
-		while ( ! _atExit && ! _eventTimedOut && ( _state < LoginStreamOpenOkEnum ) )
+		TimeOut* loginWatcher( new TimeOut( *this, timeOutLengthInMicroSeconds, &OmmBaseImpl::terminateIf, reinterpret_cast< void* >( this ), true ) );
+		while ( ! _atExit && ! _eventTimedOut &&
+		        ( _state < LoginStreamOpenOkEnum ) &&
+		        ( _state != RsslChannelUpStreamNotOpenEnum ) )
 			rsslReactorDispatchLoop( _activeConfig.dispatchTimeoutApiThread, _activeConfig.maxDispatchCountApiThread );
-		
-		ChannelConfig *pChannelcfg = _activeConfig.configChannelSet[0];
+
+		ChannelConfig* pChannelcfg = _activeConfig.configChannelSet[0];
 
 		if ( _eventTimedOut )
 		{
@@ -829,32 +848,37 @@ void OmmBaseImpl::initialize( EmaConfigImpl* configImpl )
 			failureMsg.append( _activeConfig.loginRequestTimeOut ).append( " milliseconds) for " );
 			if ( pChannelcfg->getType() == ChannelConfig::SocketChannelEnum )
 			{
-				SocketChannelConfig * channelConfig( reinterpret_cast< SocketChannelConfig * >( pChannelcfg ) );
-				failureMsg.append( channelConfig->hostName ).append( ":" ).append( channelConfig->serviceName ).append(")");
+				SocketChannelConfig* channelConfig( reinterpret_cast< SocketChannelConfig* >( pChannelcfg ) );
+				failureMsg.append( channelConfig->hostName ).append( ":" ).append( channelConfig->serviceName ).append( ")" );
 			}
-			else if (pChannelcfg->getType() == ChannelConfig::HttpChannelEnum )
+			else if ( pChannelcfg->getType() == ChannelConfig::HttpChannelEnum )
 			{
-				HttpChannelConfig * channelConfig( reinterpret_cast< HttpChannelConfig * >( pChannelcfg ) );
-				failureMsg.append( channelConfig->hostName ).append( ":" ).append( channelConfig->serviceName ).append(")");
+				HttpChannelConfig* channelConfig( reinterpret_cast< HttpChannelConfig* >( pChannelcfg ) );
+				failureMsg.append( channelConfig->hostName ).append( ":" ).append( channelConfig->serviceName ).append( ")" );
 			}
 			else if ( pChannelcfg->getType() == ChannelConfig::EncryptedChannelEnum )
 			{
-				EncryptedChannelConfig * channelConfig( reinterpret_cast< EncryptedChannelConfig * >(pChannelcfg) );
-				failureMsg.append( channelConfig->hostName ).append( ":" ).append( channelConfig->serviceName ).append(")");
+				EncryptedChannelConfig* channelConfig( reinterpret_cast< EncryptedChannelConfig* >( pChannelcfg ) );
+				failureMsg.append( channelConfig->hostName ).append( ":" ).append( channelConfig->serviceName ).append( ")" );
 			}
 
 			if ( OmmLoggerClient::ErrorEnum >= _activeConfig.loggerConfig.minLoggerSeverity )
-				_pLoggerClient->log(_activeConfig.instanceName, OmmLoggerClient::ErrorEnum, failureMsg);
+				_pLoggerClient->log( _activeConfig.instanceName, OmmLoggerClient::ErrorEnum, failureMsg );
 			throwIueException( failureMsg );
+			return;
+		}
+		else if ( _state == RsslChannelUpStreamNotOpenEnum )
+		{
+			throwIueException( getLoginCallbackClient().getLoginFailureMessage() );
 			return;
 		}
 		else
 			loginWatcher->cancel();
-	
-		downloadDirectory();
-		downloadDictionary();
 
-		if ( !_atExit && _activeConfig.userDispatch == OmmConsumerConfig::ApiDispatchEnum ) start();
+		loadDirectory();
+		loadDictionary();
+
+		if ( !_atExit && isApiDispatching() ) start();
 
 		_userLock.unlock();
 	}
@@ -862,13 +886,38 @@ void OmmBaseImpl::initialize( EmaConfigImpl* configImpl )
 	{
 		_userLock.unlock();
 
- 		uninitialize();
+		uninitialize();
 
-		if ( hasUserErrorHandler() )
-			notifyUserErrorHandler( ommException, getUserErrorHandler() );
+		if ( hasErrorClientHandler() )
+			notifErrorClientHandler( ommException, getErrorClientHandler() );
 		else
 			throw;
 	}
+}
+
+ErrorClientHandler& OmmBaseImpl::getErrorClientHandler()
+{
+	return *_pErrorClientHandler;
+}
+
+bool OmmBaseImpl::hasErrorClientHandler() const
+{
+	return _pErrorClientHandler != 0 ? true : false;
+}
+
+EmaList< TimeOut* >& OmmBaseImpl::getTimeOutList()
+{
+	return _theTimeOuts;
+}
+
+Mutex& OmmBaseImpl::getTimeOutMutex()
+{
+	return _timeOutLock;
+}
+
+void OmmBaseImpl::installTimeOut()
+{
+	pipeWrite();
 }
 
 void OmmBaseImpl::setDispatchInternalMsg()
@@ -907,7 +956,7 @@ void OmmBaseImpl::cleanUp()
 
 void OmmBaseImpl::uninitialize( bool caughtExcep )
 {
-  OmmImplMap< OmmBaseImpl >::remove( this );
+	InstanceMap< OmmBaseImpl >::remove( this );
 
 	_userLock.lock();
 
@@ -917,7 +966,7 @@ void OmmBaseImpl::uninitialize( bool caughtExcep )
 		return;
 	}
 
-	if ( _activeConfig.userDispatch == OmmConsumerConfig::ApiDispatchEnum && !caughtExcep )
+	if ( isApiDispatching() && !caughtExcep )
 	{
 		pipeWrite();
 		stop();
@@ -935,29 +984,23 @@ void OmmBaseImpl::uninitialize( bool caughtExcep )
 			_pChannelCallbackClient->closeChannels();
 
 		RsslErrorInfo rsslErrorInfo;
-		
-		if ( RSSL_RET_SUCCESS != rsslDestroyReactor( _pRsslReactor, &rsslErrorInfo ) ) 
+		clearRsslErrorInfo( &rsslErrorInfo );
+
+		if ( RSSL_RET_SUCCESS != rsslDestroyReactor( _pRsslReactor, &rsslErrorInfo ) )
 		{
 			if ( OmmLoggerClient::ErrorEnum >= _activeConfig.loggerConfig.minLoggerSeverity )
 			{
 				EmaString temp( "Failed to uninitialize OmmConsumer (rsslDestroyReactor)." );
 				temp.append( "' Error Id='" ).append( rsslErrorInfo.rsslError.rsslErrorId )
-					.append( "' Internal sysError='" ).append( rsslErrorInfo.rsslError.sysError )
-					.append( "' Error Location='" ).append( rsslErrorInfo.errorLocation )
-					.append( "' Error Text='" ).append( rsslErrorInfo.rsslError.text ).append( "'. " );
+				.append( "' Internal sysError='" ).append( rsslErrorInfo.rsslError.sysError )
+				.append( "' Error Location='" ).append( rsslErrorInfo.errorLocation )
+				.append( "' Error Text='" ).append( rsslErrorInfo.rsslError.text ).append( "'. " );
 
-				_pLoggerClient->log(_activeConfig.instanceName, OmmLoggerClient::ErrorEnum, temp);
+				_pLoggerClient->log( _activeConfig.instanceName, OmmLoggerClient::ErrorEnum, temp );
 			}
 		}
-
-#ifdef USING_SELECT
-		FD_CLR( _pRsslReactor->eventFd, &_readFds );
-#else
-		removeFd( _pRsslReactor->eventFd );
-#endif
-		_pRsslReactor = 0;
 	}
-	
+
 	ItemCallbackClient::destroy( _pItemCallbackClient );
 
 	DictionaryCallbackClient::destroy( _pDictionaryCallbackClient );
@@ -973,7 +1016,7 @@ void OmmBaseImpl::uninitialize( bool caughtExcep )
 		if ( OmmLoggerClient::ErrorEnum >= _activeConfig.loggerConfig.minLoggerSeverity )
 		{
 			EmaString temp( "rsslUninitialize() failed while unintializing OmmConsumer." );
-			_pLoggerClient->log(_activeConfig.instanceName, OmmLoggerClient::ErrorEnum, temp);
+			_pLoggerClient->log( _activeConfig.instanceName, OmmLoggerClient::ErrorEnum, temp );
 		}
 	}
 
@@ -981,7 +1024,7 @@ void OmmBaseImpl::uninitialize( bool caughtExcep )
 	FD_CLR( _pipe.readFD(), &_readFds );
 #else
 	removeFd( _pipe.readFD() );
-	pipeReadEventFdsIdx = -1;
+	_pipeReadEventFdsIdx = -1;
 #endif
 	_pipe.close();
 
@@ -990,7 +1033,7 @@ void OmmBaseImpl::uninitialize( bool caughtExcep )
 	_state = NotInitializedEnum;
 
 	_userLock.unlock();
-	
+
 #ifdef USING_POLL
 	delete[] _eventFds;
 #endif
@@ -1010,10 +1053,10 @@ bool OmmBaseImpl::rsslReactorDispatchLoop( Int64 timeOut, UInt32 count )
 	bool userTimeoutExists( TimeOut::getTimeOutInMicroSeconds( *this, userTimeoutInMicroSeconds ) );
 	if ( userTimeoutExists )
 	{
-	    if ( timeOut >= 0 && timeOut < userTimeoutInMicroSeconds )
-	      userTimeoutExists = false;
-	    else
-	      timeOut = userTimeoutInMicroSeconds;
+		if ( timeOut >= 0 && timeOut < userTimeoutInMicroSeconds )
+			userTimeoutExists = false;
+		else
+			timeOut = userTimeoutInMicroSeconds;
 	}
 
 	if ( _reactorRetCode <= RSSL_RET_SUCCESS || userTimeoutExists )
@@ -1026,7 +1069,7 @@ bool OmmBaseImpl::rsslReactorDispatchLoop( Int64 timeOut, UInt32 count )
 		if ( timeOut >= 0 )
 		{
 			selectTime.tv_sec = static_cast< long >( timeOut / 1000000 );
-			selectTime.tv_usec = timeOut % 1000000;			
+			selectTime.tv_usec = timeOut % 1000000;
 			selectRetCode = select( FD_SETSIZE, &useReadFds, NULL, &useExceptFds, &selectTime );
 		}
 		else
@@ -1040,25 +1083,25 @@ bool OmmBaseImpl::rsslReactorDispatchLoop( Int64 timeOut, UInt32 count )
 
 		if ( timeOut >= 0 )
 		{
-			ppollTime.tv_sec = timeOut / static_cast<long long>(1e6);
-			ppollTime.tv_nsec = timeOut % static_cast<long long>(1e6) * static_cast<long long>(1e3);
-			selectRetCode = ppoll( _eventFds, _eventFdsCount, &ppollTime, 0);
+			ppollTime.tv_sec = timeOut / static_cast<long long>( 1e6 );
+			ppollTime.tv_nsec = timeOut % static_cast<long long>( 1e6 ) * static_cast<long long>( 1e3 );
+			selectRetCode = ppoll( _eventFds, _eventFdsCount, &ppollTime, 0 );
 		}
 		else
-			selectRetCode = ppoll( _eventFds, _eventFdsCount, 0, 0);
+			selectRetCode = ppoll( _eventFds, _eventFdsCount, 0, 0 );
 
 		if ( selectRetCode > 0 )
 		{
-			if ( pipeReadEventFdsIdx == -1 )
-				for( int i = 0; i < _eventFdsCount; ++i )
+			if ( _pipeReadEventFdsIdx == -1 )
+				for ( int i = 0; i < _eventFdsCount; ++i )
 					if ( _eventFds[ i ].fd == _pipe.readFD() )
 					{
-						pipeReadEventFdsIdx = i;
+						_pipeReadEventFdsIdx = i;
 						break;
 					}
 
-			if ( pipeReadEventFdsIdx != -1 )
-				if ( _eventFds[ pipeReadEventFdsIdx ].revents & POLLIN )
+			if ( _pipeReadEventFdsIdx != -1 )
+				if ( _eventFds[ _pipeReadEventFdsIdx ].revents & POLLIN )
 					pipeRead();
 		}
 #else
@@ -1077,7 +1120,7 @@ bool OmmBaseImpl::rsslReactorDispatchLoop( Int64 timeOut, UInt32 count )
 		if ( _reactorRetCode > RSSL_RET_SUCCESS )
 		{
 			if ( userTimeoutExists && timeOut == 0 )
-				TimeOut::execute( *this, theTimeOuts );
+				TimeOut::execute( *this, _theTimeOuts );
 			return true;
 		}
 		else if ( _reactorRetCode == RSSL_RET_SUCCESS )
@@ -1088,10 +1131,12 @@ bool OmmBaseImpl::rsslReactorDispatchLoop( Int64 timeOut, UInt32 count )
 			{
 				EmaString temp( "Call to rsslReactorDispatch() failed. Internal sysError='" );
 				temp.append( _reactorDispatchErrorInfo.rsslError.sysError )
-					.append( "' Error text='" ).append( _reactorDispatchErrorInfo.rsslError.text ).append( "'. " );
+				.append( "' Error Id " ).append( _reactorDispatchErrorInfo.rsslError.rsslErrorId ).append( "' " )
+				.append( "' Error Location='" ).append( _reactorDispatchErrorInfo.errorLocation ).append( "' " )
+				.append( "' Error text='" ).append( _reactorDispatchErrorInfo.rsslError.text ).append( "'. " );
 
 				_userLock.lock();
-				if (_pLoggerClient) _pLoggerClient->log(_activeConfig.instanceName, OmmLoggerClient::ErrorEnum, temp);
+				if ( _pLoggerClient ) _pLoggerClient->log( _activeConfig.instanceName, OmmLoggerClient::ErrorEnum, temp );
 				_userLock.unlock();
 			}
 
@@ -1100,7 +1145,7 @@ bool OmmBaseImpl::rsslReactorDispatchLoop( Int64 timeOut, UInt32 count )
 	}
 	else if ( selectRetCode == 0 && userTimeoutExists )
 	{
-		TimeOut::execute( *this, theTimeOuts );
+		TimeOut::execute( *this, _theTimeOuts );
 	}
 	else if ( selectRetCode < 0 )
 	{
@@ -1114,7 +1159,7 @@ bool OmmBaseImpl::rsslReactorDispatchLoop( Int64 timeOut, UInt32 count )
 				temp.append( lastError ).append( "'. " );
 
 				_userLock.lock();
-				if (_pLoggerClient) _pLoggerClient->log(_activeConfig.instanceName, OmmLoggerClient::ErrorEnum, temp);
+				if ( _pLoggerClient ) _pLoggerClient->log( _activeConfig.instanceName, OmmLoggerClient::ErrorEnum, temp );
 				_userLock.unlock();
 			}
 		}
@@ -1148,6 +1193,7 @@ void OmmBaseImpl::closeChannel( RsslReactorChannel* pRsslReactorChannel )
 	if ( !pRsslReactorChannel ) return;
 
 	RsslErrorInfo rsslErrorInfo;
+	clearRsslErrorInfo( &rsslErrorInfo );
 
 	if ( pRsslReactorChannel->socketId != REACTOR_INVALID_SOCKET )
 		removeSocket( pRsslReactorChannel->socketId );
@@ -1157,21 +1203,76 @@ void OmmBaseImpl::closeChannel( RsslReactorChannel* pRsslReactorChannel )
 		if ( OmmLoggerClient::ErrorEnum >= _activeConfig.loggerConfig.minLoggerSeverity )
 		{
 			EmaString temp( "Failed to close reactor channel (rsslReactorCloseChannel)." );
-			temp.append( "' RsslChannel='" ).append( (UInt64)rsslErrorInfo.rsslError.channel )
-				.append( "' Error Id='" ).append( rsslErrorInfo.rsslError.rsslErrorId )
-				.append( "' Internal sysError='" ).append( rsslErrorInfo.rsslError.sysError )
-				.append( "' Error Location='" ).append( rsslErrorInfo.errorLocation )
-				.append( "' Error Text='" ).append( rsslErrorInfo.rsslError.text ).append( "'. " );
+			temp.append( "' RsslChannel='" ).append( ( UInt64 )rsslErrorInfo.rsslError.channel )
+			.append( "' Error Id='" ).append( rsslErrorInfo.rsslError.rsslErrorId )
+			.append( "' Internal sysError='" ).append( rsslErrorInfo.rsslError.sysError )
+			.append( "' Error Location='" ).append( rsslErrorInfo.errorLocation )
+			.append( "' Error Text='" ).append( rsslErrorInfo.rsslError.text ).append( "'. " );
 
 			_userLock.lock();
 
-			if (_pLoggerClient) _pLoggerClient->log(_activeConfig.instanceName, OmmLoggerClient::ErrorEnum, temp);
-			
+			if ( _pLoggerClient ) _pLoggerClient->log( _activeConfig.instanceName, OmmLoggerClient::ErrorEnum, temp );
+
 			_userLock.unlock();
 		}
 	}
 
 	_pChannelCallbackClient->removeChannel( pRsslReactorChannel );
+}
+
+void OmmBaseImpl::handleIue( const EmaString& text )
+{
+	if ( OmmLoggerClient::ErrorEnum >= _activeConfig.loggerConfig.minLoggerSeverity )
+		getOmmLoggerClient().log( _activeConfig.instanceName, OmmLoggerClient::ErrorEnum, text );
+
+	if ( hasErrorClientHandler() )
+		getErrorClientHandler().onInvalidUsage( text );
+	else
+		throwIueException( text );
+}
+
+void OmmBaseImpl::handleIue( const char* text )
+{
+	if ( OmmLoggerClient::ErrorEnum >= _activeConfig.loggerConfig.minLoggerSeverity )
+		getOmmLoggerClient().log( _activeConfig.instanceName, OmmLoggerClient::ErrorEnum, text );
+
+	if ( hasErrorClientHandler() )
+		getErrorClientHandler().onInvalidUsage( text );
+	else
+		throwIueException( text );
+}
+
+void OmmBaseImpl::handleIhe( UInt64 handle, const EmaString& text )
+{
+	if ( OmmLoggerClient::ErrorEnum >= _activeConfig.loggerConfig.minLoggerSeverity )
+		getOmmLoggerClient().log( _activeConfig.instanceName, OmmLoggerClient::ErrorEnum, text );
+
+	if ( hasErrorClientHandler() )
+		getErrorClientHandler().onInvalidHandle( handle, text );
+	else
+		throwIheException( handle, text );
+}
+
+void OmmBaseImpl::handleIhe( UInt64 handle, const char* text )
+{
+	if ( OmmLoggerClient::ErrorEnum >= _activeConfig.loggerConfig.minLoggerSeverity )
+		getOmmLoggerClient().log( _activeConfig.instanceName, OmmLoggerClient::ErrorEnum, text );
+
+	if ( hasErrorClientHandler() )
+		getErrorClientHandler().onInvalidHandle( handle, text );
+	else
+		throwIheException( handle, text );
+}
+
+void OmmBaseImpl::handleMee( const char* text )
+{
+	if ( OmmLoggerClient::ErrorEnum >= _activeConfig.loggerConfig.minLoggerSeverity )
+		getOmmLoggerClient().log( _activeConfig.instanceName, OmmLoggerClient::ErrorEnum, text );
+
+	if ( hasErrorClientHandler() )
+		getErrorClientHandler().onMemoryExhaustion( text );
+	else
+		throwMeeException( text );
 }
 
 ItemCallbackClient& OmmBaseImpl::getItemCallbackClient()
@@ -1247,14 +1348,14 @@ ActiveConfig& OmmBaseImpl::getActiveConfig()
 
 void OmmBaseImpl::run()
 {
-  while ( !Thread::isStopping() && !_atExit )
-    rsslReactorDispatchLoop( _activeConfig.dispatchTimeoutApiThread, _activeConfig.maxDispatchCountApiThread );
+	while ( !Thread::isStopping() && !_atExit )
+		rsslReactorDispatchLoop( _activeConfig.dispatchTimeoutApiThread, _activeConfig.maxDispatchCountApiThread );
 }
 
 int OmmBaseImpl::runLog( void* pExceptionStructure, const char* file, unsigned int line )
 {
-	char reportBuf[EMA_BIG_STR_BUFF_SIZE*10];
-	if ( retrieveExceptionContext( pExceptionStructure, file, line, reportBuf, EMA_BIG_STR_BUFF_SIZE*10 ) > 0 )
+	char reportBuf[EMA_BIG_STR_BUFF_SIZE * 10];
+	if ( retrieveExceptionContext( pExceptionStructure, file, line, reportBuf, EMA_BIG_STR_BUFF_SIZE * 10 ) > 0 )
 	{
 		_userLock.lock();
 		if ( _pLoggerClient ) _pLoggerClient->log( _activeConfig.instanceName, OmmLoggerClient::ErrorEnum, reportBuf );
@@ -1269,7 +1370,7 @@ RsslReactorCallbackRet OmmBaseImpl::channelCallback( RsslReactor* pRsslReactor, 
 	return static_cast<OmmBaseImpl*>( pRsslReactor->userSpecPtr )->getChannelCallbackClient().processCallback( pRsslReactor, pRsslReactorChannel, pEvent );
 }
 
-RsslReactorCallbackRet OmmBaseImpl::loginCallback( RsslReactor *pRsslReactor, RsslReactorChannel *pRsslReactorChannel, RsslRDMLoginMsgEvent *pEvent )
+RsslReactorCallbackRet OmmBaseImpl::loginCallback( RsslReactor* pRsslReactor, RsslReactorChannel* pRsslReactorChannel, RsslRDMLoginMsgEvent* pEvent )
 {
 	return static_cast<OmmBaseImpl*>( pRsslReactor->userSpecPtr )->getLoginCallbackClient().processCallback( pRsslReactor, pRsslReactorChannel, pEvent );
 }
@@ -1294,30 +1395,30 @@ RsslReactorCallbackRet OmmBaseImpl::channelOpenCallback( RsslReactor* pRsslReact
 	return static_cast<OmmBaseImpl*>( pRsslReactor->userSpecPtr )->getChannelCallbackClient().processCallback( pRsslReactor, pRsslReactorChannel, pEvent );
 }
 
-const EmaString& OmmBaseImpl::getUserName() const
+const EmaString& OmmBaseImpl::getInstanceName() const
 {
-  return _activeConfig.instanceName;
+	return _activeConfig.instanceName;
 }
 
-void OmmBaseImpl::notifyUserErrorHandler( const OmmException& ommException, UserErrorHandler& errorClient )
+void OmmBaseImpl::notifErrorClientHandler( const OmmException& ommException, ErrorClientHandler& errorClient )
 {
-	switch( ommException.getExceptionType() )
+	switch ( ommException.getExceptionType() )
 	{
 	case OmmException::OmmSystemExceptionEnum :
-		errorClient.onSystemError( static_cast<const OmmSystemException&>( ommException ).getSystemExceptionCode(), 
-			static_cast<const OmmSystemException&>( ommException ).getSystemExceptionAddress(),
-			ommException.getText() );
+		errorClient.onSystemError( static_cast<const OmmSystemException&>( ommException ).getSystemExceptionCode(),
+		                           static_cast<const OmmSystemException&>( ommException ).getSystemExceptionAddress(),
+		                           ommException.getText() );
 		break;
 	case OmmException::OmmInvalidHandleExceptionEnum:
-		errorClient.onInvalidHandle ( static_cast<const OmmInvalidHandleException&>( ommException ).getHandle(),
-			ommException.getText() );
+		errorClient.onInvalidHandle( static_cast<const OmmInvalidHandleException&>( ommException ).getHandle(),
+		                             ommException.getText() );
 		break;
 	case OmmException::OmmInvalidUsageExceptionEnum:
 		errorClient.onInvalidUsage( ommException.getText() );
 		break;
 	case OmmException::OmmInaccessibleLogFileExceptionEnum:
 		errorClient.onInaccessibleLogFile( static_cast<const OmmInaccessibleLogFileException&>( ommException ).getFilename(),
-			ommException.getText() );
+		                                   ommException.getText() );
 		break;
 	case OmmException::OmmMemoryExhaustionExceptionEnum:
 		errorClient.onMemoryExhaustion( ommException.getText() );
@@ -1327,6 +1428,6 @@ void OmmBaseImpl::notifyUserErrorHandler( const OmmException& ommException, User
 
 void OmmBaseImpl::terminateIf( void* object )
 {
-	OmmBaseImpl * user = reinterpret_cast<OmmBaseImpl*>( object );
+	OmmBaseImpl* user = reinterpret_cast<OmmBaseImpl*>( object );
 	user->_eventTimedOut = true;
 }

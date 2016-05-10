@@ -12,43 +12,58 @@
 #include "EmaString.h"
 
 thomsonreuters::ema::access::EmaString AsciiValues[] = {
+	"CapabilitiesEntry",
 	"Channel",
 	"ChannelSet",
-	"ConsumerName",
 	"DefaultConsumer",
+	"DefaultDictionary",
+	"DefaultDirectory",
 	"DefaultNiProvider",
-	"DefaultSession",
+	"DictionariesProvidedEntry",
+	"DictionariesUsedEntry",
 	"Dictionary",
+	"Directory",
 	"EnumTypeDefFileName",
+	"EnumTypeDefItemName",
 	"FileName",
 	"Host",
 	"HsmInterface",
 	"HsmMultAddress",
 	"HsmPort",
 	"InterfaceName",
+	"ItemList",
 	"Logger",
 	"Name",
 	"ObjectName",
 	"Port",
+	"Rate",
 	"RdmFieldDictionaryFileName",
+	"RdmFieldDictionaryItemName",
 	"RecvAddress",
 	"RecvPort",
 	"SendAddress",
 	"SendPort",
-	"UnicastPort",
-	"XmlTraceFileName",
+	"StatusText",
 	"tcpControlPort",
+	"Timeliness",
+	"UnicastPort",
+	"Vendor",
+	"XmlTraceFileName",
 };
 
 thomsonreuters::ema::access::EmaString EnumeratedValues[] = {
 	"ChannelType",
 	"CompressionType",
+	"DataState",
 	"DictionaryType",
 	"LoggerSeverity",
 	"LoggerType",
+	"StatusCode",
+	"StreamState",
 };
 
 thomsonreuters::ema::access::EmaString Int64Values[] = {
+	"DictionaryID",
 	"DispatchTimeoutApiThread",
 	"PipePort",
 	"ReconnectAttemptLimit",
@@ -58,6 +73,8 @@ thomsonreuters::ema::access::EmaString Int64Values[] = {
 };
 
 thomsonreuters::ema::access::EmaString UInt64Values[] = {
+	"AcceptingConsumerStatus",
+	"AcceptingRequests",
 	"CatchUnhandledException",
 	"CompressionThreshold",
 	"ConnectionPingTimeout",
@@ -68,20 +85,29 @@ thomsonreuters::ema::access::EmaString UInt64Values[] = {
 	"HsmInterval",
 	"IncludeDateInLoggerOutput",
 	"ItemCountHint",
+	"IsSource",
 	"LoginRequestTimeOut",
 	"MaxDispatchCountApiThread",
 	"MaxDispatchCountUserThread",
 	"MaxOutstandingPosts",
+	"MergeSourceDirectoryStreams",
 	"MsgKeyInUpdates",
 	"NumInputBuffers",
 	"ObeyOpenWindow",
 	"PacketTTL",
 	"PostAckTimeout",
+	"RefreshFirstRequired",
 	"RequestTimeout",
 	"ServiceCountHint",
+	"ServiceId",
+	"ServiceState",
+	"SupportsOutOfBandSnapshots",
+	"SupportsQoSRange",
 	"SysRecvBufSize",
 	"SysSendBufSize",
 	"TcpNodelay",
+	"XmlTraceHex",
+	"XmlTracePing",
 	"XmlTraceRead",
 	"XmlTraceToFile",
 	"XmlTraceToMultipleFiles",
@@ -98,6 +124,16 @@ thomsonreuters::ema::access::EmaString UInt64Values[] = {
 	"trreq",
 	"twait",
 	"userQLimit",
+};
+
+thomsonreuters::ema::access::EmaString NodesThatRequireName[] = {
+	"Channel",
+	"Consumer",
+	"Dictionary",
+	"Directory",
+	"Logger"
+	"NiProvider",
+	"Service",
 };
 
 #endif //__thomsonreuters_ema_access_DefaultXML_h

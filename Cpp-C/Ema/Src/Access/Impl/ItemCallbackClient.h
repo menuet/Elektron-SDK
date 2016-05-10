@@ -85,7 +85,7 @@ public :
 
 	static void destroy( Item*& );
 
-	ClientFunctions& getClientFunctions() const;
+	ClientFunctions* getClientFunctions() const;
 	void* getClosure() const;
 	Item* getParent() const;
 	Int32 getStreamId() const;
@@ -109,10 +109,10 @@ protected :
 	Int32						_streamId;
 	void*						_closure;
 	Item*						_parent;
-	ClientFunctions&			_clientFunctions;
+	ClientFunctions*			_clientFunctions;
   OmmBaseImpl&				_ommBaseImpl;
 
-	Item( OmmBaseImpl& , ClientFunctions& , void* , Item* );
+	Item( OmmBaseImpl& , ClientFunctions* , void* , Item* );
 	virtual ~Item();
 
 private :
@@ -161,7 +161,7 @@ class SingleItem : public Item
 {
 public :
 
-	static SingleItem* create( OmmBaseImpl& , ClientFunctions& , void* , Item* );
+	static SingleItem* create( OmmBaseImpl& , ClientFunctions* , void* , Item* );
 
 	const Directory* getDirectory();
 
@@ -178,7 +178,7 @@ public :
 
 protected :
 
-	SingleItem( OmmBaseImpl& , ClientFunctions& , void* , Item* );
+	SingleItem( OmmBaseImpl& , ClientFunctions* , void* , Item* );
 
 	virtual ~SingleItem();
 
@@ -205,7 +205,7 @@ class BatchItem : public SingleItem
 {
 public :
 
-	static BatchItem* create( OmmBaseImpl& , ClientFunctions& , void* );
+	static BatchItem* create( OmmBaseImpl& , ClientFunctions* , void* );
 
 	bool open( const ReqMsg& );
 	bool modify( const ReqMsg& );
@@ -213,7 +213,7 @@ public :
 	bool submit( const GenericMsg& );
 	bool close();
 
-	bool addBatchItems( const EmaVector<EmaString>& );
+	bool addBatchItems( UInt32 batchSize );
 
 	const EmaVector<SingleItem*>& getSingleItemList();
 
@@ -232,7 +232,7 @@ private :
 	EmaVector<SingleItem*>		_singleItemList;
 	UInt32						_itemCount;
 
-	BatchItem( OmmBaseImpl& , ClientFunctions& , void* );
+	BatchItem( OmmBaseImpl& , ClientFunctions* , void* );
 	BatchItem();
 	virtual ~BatchItem();
 	BatchItem( const BatchItem& );
@@ -243,7 +243,7 @@ class TunnelItem : public Item
 {
 public :
 
-  	static TunnelItem* create( OmmBaseImpl& , ClientFunctions& , void* );
+	static TunnelItem* create( OmmBaseImpl& , ClientFunctions* , void* );
 
 	ItemType getType() const;
 
@@ -269,7 +269,7 @@ public :
 
 protected :
 
-	TunnelItem( OmmBaseImpl& , ClientFunctions& , void* );
+	TunnelItem( OmmBaseImpl& , ClientFunctions* , void* );
 	virtual ~TunnelItem();
 	Int32 getSubItemStreamId();
 	void scheduleItemClosedStatus( const TunnelStreamRequest& , const EmaString& );
@@ -292,7 +292,7 @@ class SubItem : public Item
 {
 public :
 
-	static SubItem* create( OmmBaseImpl& , ClientFunctions& , void* , Item* );
+	static SubItem* create( OmmBaseImpl& , ClientFunctions* , void* , Item* );
 
 	ItemType getType() const;
 
@@ -307,7 +307,7 @@ public :
 
 protected :
 
-	SubItem( OmmBaseImpl& , ClientFunctions& , void* , Item* );
+	SubItem( OmmBaseImpl& , ClientFunctions* , void* , Item* );
 
 	virtual ~SubItem();
 
@@ -374,8 +374,6 @@ private :
 
 	AckMsg							_ackMsg;
 
-	OmmConsumerEvent				_event;
-
 	OmmBaseImpl&					_ommBaseImpl;
 
 	ItemList*						_itemList;
@@ -400,11 +398,11 @@ private :
 	RsslReactorCallbackRet processUpdateMsg( RsslMsg* , RsslReactorChannel* , RsslMsgEvent* );
 	RsslReactorCallbackRet processStatusMsg( RsslMsg* , RsslReactorChannel* , RsslMsgEvent* );
 
-	RsslReactorCallbackRet processAckMsg( RsslTunnelStream* , RsslTunnelStreamMsgEvent* );
-	RsslReactorCallbackRet processGenericMsg( RsslTunnelStream* , RsslTunnelStreamMsgEvent* );
-	RsslReactorCallbackRet processRefreshMsg( RsslTunnelStream* , RsslTunnelStreamMsgEvent* );
-	RsslReactorCallbackRet processUpdateMsg( RsslTunnelStream* , RsslTunnelStreamMsgEvent* );
-	RsslReactorCallbackRet processStatusMsg( RsslTunnelStream* , RsslTunnelStreamMsgEvent* );
+  RsslReactorCallbackRet processAckMsg( RsslTunnelStream* , RsslTunnelStreamMsgEvent*, Item* );
+  RsslReactorCallbackRet processGenericMsg( RsslTunnelStream* , RsslTunnelStreamMsgEvent*, Item* );
+  RsslReactorCallbackRet processRefreshMsg( RsslTunnelStream* , RsslTunnelStreamMsgEvent*, Item* );
+  RsslReactorCallbackRet processUpdateMsg( RsslTunnelStream* , RsslTunnelStreamMsgEvent*, Item* );
+  RsslReactorCallbackRet processStatusMsg( RsslTunnelStream* , RsslTunnelStreamMsgEvent*, Item* );
 
 	ItemCallbackClient( OmmBaseImpl& );
 	virtual ~ItemCallbackClient();

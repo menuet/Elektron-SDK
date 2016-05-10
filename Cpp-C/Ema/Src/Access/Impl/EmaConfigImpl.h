@@ -20,10 +20,13 @@
 #include "EmaString.h"
 #include "EmaList.h"
 #include "OmmConsumerConfig.h"
+#include "OmmNiProviderConfig.h"
 #include "ProgrammaticConfigure.h"
 
 #include "rtr/rsslRDMLoginMsg.h"
 #include "libxml/parser.h"
+
+#include <iostream>
 
 namespace thomsonreuters {
 
@@ -34,86 +37,153 @@ namespace access {
 class XMLnode;
 class ProgrammaticConfigure;
 
-class ConfigElement {
+class ConfigElement
+{
 public:
-	typedef enum {
+
+	enum ConfigElementType
+	{
 		ConfigElementTypeInt64 = 0,
 		ConfigElementTypeUInt64 = 1,
 		ConfigElementTypeAscii = 2,
 		ConfigElementTypeEnum = 3,
 		ConfigElementTypeBool = 4,
-	} ConfigElementType;
-	ConfigElement(const EmaString & name, XMLnode * parent) : _name(name), _parent(parent) {}
+	};
+
+	ConfigElement( const EmaString& name, XMLnode* parent ) : _name( name ), _parent( parent ) {}
+
 	virtual ~ConfigElement() {}
-	virtual void print() = 0;
-	const EmaString & name() const
+
+	virtual void print() const = 0;
+
+	const EmaString& name() const
 	{
 		return _name;
 	}
-	XMLnode * parent() const
+
+	XMLnode* parent() const
 	{
 		return _parent;
 	}
-	void reParent( XMLnode * p )
+
+	void reParent( XMLnode* p )
 	{
 		_parent = p;
 	}
-	bool operator== ( const ConfigElement & ) const;
-	void appendErrorMessage( EmaString & , OmmLoggerClient::Severity );
-	EmaString changeMessage( const EmaString &, const ConfigElement &) const;
-protected:
+
+	bool operator==( const ConfigElement& ) const;
+
+	void appendErrorMessage( EmaString&, OmmLoggerClient::Severity );
+
+	EmaString changeMessage( const EmaString&, const ConfigElement& ) const;
+
+	virtual void addValue( const ConfigElement* ) = 0;
+
 	virtual ConfigElementType type() const = 0;
-	EmaString _name;
-	XMLnode * _parent;
+
+protected:
+
+	EmaString	_name;
+	XMLnode*	_parent;
 };
 
 template<typename T>
 class XMLConfigElement : public ConfigElement
 {
 public:
-	XMLConfigElement(const EmaString & name, XMLnode * parent, ConfigElementType type, const T & value) : ConfigElement(name, parent), _type(type), _value(value) {
-		XMLnode * p(parent);
+
+	XMLConfigElement( const EmaString& name, XMLnode* parent, ConfigElementType type, const T& value ) :
+		ConfigElement( name, parent ),
+		_type( type )
+	{
+		_values.push_back( value );
 	}
-	T * value() { return &_value; }
+
+	EmaVector<T>* values()
+	{
+		return &_values;
+	}
+	T* value()
+	{
+		return &_values[_values.size() - 1];
+	}
+
 	virtual ConfigElementType type() const
 	{
 		return _type;
 	}
-	void print()
+
+	void addValue( const ConfigElement* p )
 	{
-		printf("%s: %d (parent %p)", _name.c_str(), _value, _parent);
-		fflush(stdout);
+		const XMLConfigElement< T >* tmp( dynamic_cast<const XMLConfigElement<T>* >( p ) );
+		if ( tmp )
+			_values.push_back( tmp->_values[0] );
 	}
-	bool operator== ( const XMLConfigElement & ) const;
-	EmaString changeMessage( const EmaString &, const XMLConfigElement< T > & ) const;
+
+	void print() const
+	{
+		printf( "%s (parent %p)", _name.c_str(), _parent );
+		printf( ": %d", _values[0] );
+		for ( unsigned int i = 1; i < _values.size(); ++i )
+			printf( ", %d", _values[i] );
+		fflush( stdout );
+	}
+
+	bool operator==( const XMLConfigElement& ) const;
+
+	EmaString changeMessage( const EmaString&, const XMLConfigElement< T >& ) const;
+
 private:
-	ConfigElementType _type;
-	T _value;
+
+	ConfigElementType	_type;
+	EmaVector<T>		_values;
 };
 
 template < class T >
 struct NamePair
 {
 	NamePair( T first, T second ) : first( first ), second( second ) {}
-	NamePair( T & first, T & second ) : first( first ), second( second ) {}
+	NamePair( T& first, T& second ) : first( first ), second( second ) {}
 	T first;
 	T second;
 };
 
 static NamePair<EmaString> configReplacementPairs[] = { NamePair<EmaString>( EmaString( "Channel" ), EmaString( "ChannelSet" ) ) };
 
-class ConfigElementList {
+class ConfigElementList
+{
 public:
-	ConfigElementList() : theList(0) {}
-	void add(ConfigElement * element)
+
+	ConfigElementList() : _theList( 0 ) {}
+
+	ConfigElement* first() const
 	{
-		Node * n(new Node(element));
-		if (theList) {
-			Node *last(0);
-			Node *q;
-			for (q = theList; q; q = q->next)
+		return _theList ? _theList->e : 0;
+	}
+
+	ConfigElement* next( const ConfigElement* ce ) const
+	{
+		Node* q;
+		for ( Node* p = _theList; p; p = q )
+		{
+			if ( p->e == ce )
+				return p->next ? p->next->e : 0;
+			q = p->next;
+		}
+
+		return 0;
+	}
+
+	void add( ConfigElement* element )
+	{
+		Node* n( new Node( element ) );
+		if ( _theList )
+		{
+			Node* last( 0 );
+			Node* q;
+			for ( q = _theList; q; q = q->next )
 			{
-				if (element->name() == q->e->name())
+				if ( element->name() == q->e->name() )
 				{
 					q->e = element;
 					break;
@@ -121,48 +191,50 @@ public:
 				last = q;
 			}
 
-			if (! q) {
+			if ( ! q )
+			{
 				last->next = n;
 				n->next = 0;
 			}
 		}
 		else
-			theList = n;
+			_theList = n;
 	}
 
-	NamePair<bool> replaceElement( ConfigElement* existingElement, ConfigElement* newElement ) 
+	NamePair<bool> replaceElement( ConfigElement* existingElement, ConfigElement* newElement )
 	{
 		if ( existingElement->name() == newElement->name() )
 		{
 			if ( existingElement->name() != "Name" &&
-				 ! ( *existingElement == *newElement ) )
-				 return NamePair<bool>( true, true );
+			     !( *existingElement == *newElement ) )
+				return NamePair<bool>( true, true );
 			return NamePair<bool>( true, false );
 		}
 
 		for ( int i = 0; i < sizeof configReplacementPairs / sizeof configReplacementPairs[0]; ++i )
 		{
-			if ( ( configReplacementPairs[i].first == existingElement->name() && configReplacementPairs[i].second == newElement->name() ) || 
-				 ( configReplacementPairs[i].first == newElement->name() && configReplacementPairs[i].second == existingElement->name() ) )
-				 return NamePair<bool>( true, true );
+			if ( ( configReplacementPairs[i].first == existingElement->name() && configReplacementPairs[i].second == newElement->name() ) ||
+			     ( configReplacementPairs[i].first == newElement->name() && configReplacementPairs[i].second == existingElement->name() ) )
+				return NamePair<bool>( true, true );
 		}
 
 		return NamePair<bool>( false, false );
 	}
 
-	void appendAttributes(ConfigElementList * attributes, bool emptyList = false)
+	void appendAttributes( ConfigElementList* attributes, bool emptyList = false )
 	{
-		if (theList) {
-			Node *nextAttribute(0);
-			for (Node *p = attributes->theList; p; p = nextAttribute) 
+		if ( _theList )
+		{
+			Node* nextAttribute( 0 );
+			for ( Node* p = attributes->_theList; p; p = nextAttribute )
 			{
 				nextAttribute = p->next;
 
-				Node *last(0);
-				Node *q;
-				for (q = theList; q; q = q->next)
+				Node* last( 0 );
+				Node* q;
+				for ( q = _theList; q; q = q->next )
 				{
-					NamePair<bool> replace( replaceElement( p->e, q->e ) );
+					NamePair<bool> replace( replaceElement( q->e, p->e ) );
 
 					// attribute is name/value pair; this checks if two attributes have the same name
 					if ( replace.first )
@@ -170,141 +242,154 @@ public:
 						if ( replace.second )
 						{
 							EmaString actualName;
-							if (theList->e->name() == "Name")
+							if ( _theList->e->name() == "Name" )
 							{
-								XMLConfigElement<EmaString> * tmp(dynamic_cast<XMLConfigElement<EmaString> *>( theList->e ) );
-								if (tmp)
-									actualName = *(tmp->value());
+								XMLConfigElement<EmaString>* tmp( dynamic_cast<XMLConfigElement<EmaString> *>( _theList->e ) );
+								if ( tmp )
+									actualName = *( tmp->value() );
 							}
-							EmaString errorMsg(q->e->changeMessage(actualName, *(p->e)));
-							ConfigElement * toFree( q->e );
-							q->e = p->e;
-							p->e->reParent(toFree->parent());
-							p->e->appendErrorMessage(errorMsg, OmmLoggerClient::VerboseEnum);
-							delete( toFree );
+							EmaString errorMsg( q->e->changeMessage( actualName, *( p->e ) ) );
+							ConfigElement* toFree( q->e );
+							q->e->addValue( p->e );
 						}
 
 						else
 							delete p->e;
 
-						if (attributes->theList == p)
-							attributes->theList = nextAttribute;
+						if ( attributes->_theList == p )
+							attributes->_theList = nextAttribute;
 						delete p;
 						break;
 					}
 					last = q;
 				}
 
-				if (! q) {
-					p->e->reParent(last->e->parent());
+				if ( ! q )
+				{
+					p->e->reParent( last->e->parent() );
 					last->next = p;
 					p->next = 0;
 				}
 			}
 
-			attributes->theList = 0;
-			delete attributes->theList;
+			attributes->_theList = 0;
+			delete attributes->_theList;
 		}
 		else
-			theList = attributes->theList;
-		
-		if (emptyList)
-			attributes->theList = 0;
+			_theList = attributes->_theList;
+
+		if ( emptyList )
+			attributes->_theList = 0;
 	}
 
 	template<typename T>
-	T *
-	find( const EmaString & itemToRetrieve ) const
+	T* find( const EmaString& itemToRetrieve ) const
 	{
-		for ( Node * p = theList; p; p = p->next ) {
-			if (p->e->name() == itemToRetrieve) {
-				XMLConfigElement<T> * e = dynamic_cast<XMLConfigElement<T> *>(p->e);
+		for ( Node* p = _theList; p; p = p->next )
+		{
+			if ( p->e->name() == itemToRetrieve )
+			{
+				XMLConfigElement<T>* e = dynamic_cast<XMLConfigElement<T> *>( p->e );
 				if ( e )
 					return e->value();
 				if ( p->e->parent() )
 				{
 					EmaString errorMsg( "dynamic cast failed for [" );
 					errorMsg.append( itemToRetrieve.c_str() ).append( "]" );
-					p->e->appendErrorMessage(errorMsg, OmmLoggerClient::ErrorEnum);
+					p->e->appendErrorMessage( errorMsg, OmmLoggerClient::ErrorEnum );
 				}
 				return 0;
 			}
 		}
 		return 0;
 	}
-	void print(int tabs = 0) {
-		for (Node *p = theList; p; p = p->next)
+
+	void print( int tabs = 0 ) const
+	{
+		for ( Node* p = _theList; p; p = p->next )
 		{
-			for (int i = 0; i < tabs; ++i)
-				printf("\t");
+			for ( int i = 0; i < tabs; ++i )
+				printf( "\t" );
 			if ( p->e )
 				p->e->print();
-			printf("\n");
-			fflush(stdout);
+			printf( "\n" );
+			fflush( stdout );
 		}
 	}
-	~ConfigElementList()
+
+	virtual ~ConfigElementList()
 	{
-		Node * q;
-		for (Node * p = theList; p; p = q) {
+		Node* q;
+		for ( Node* p = _theList; p; p = q )
+		{
 			q = p->next;
-			delete(p->e);
-			delete(p);
+			delete( p->e );
+			delete( p );
 		}
 	}
+
 private:
-	struct Node {
-		Node(ConfigElement * e) : e(e), next(0) {}
-		ConfigElement * e;
-		Node * next;
+
+	struct Node
+	{
+		Node( ConfigElement* e ) : e( e ), next( 0 ) {}
+		ConfigElement* e;
+		Node* next;
 	};
-	Node * theList;
+
+	Node* _theList;
 };
 
 template<typename T>
 class xmlList
 {
 public:
-	xmlList() : theList(0) {}
-	bool insert(T * element)
+
+	xmlList() : _theList( 0 ) {}
+
+	bool insert( T* element, bool merge )
 	{
-		if (theList)
+		if ( _theList )
 		{
-			 {
-			 	for (Node * p = theList; p; p = p->next)
-			 		if (p->e->name() == element->name())
+			if ( merge )
+			{
+
+				for ( Node* p = _theList; p; p = p->next )
+					if ( p->e->name() == element->name() )
 					{
-			 			if ( p->e->merge(element) )
+						if ( p->e->merge( element ) )
 							return true;
 					}
-			 }
+			}
 
-			Node *p = theList;
-			while (p->next)
+			Node* p = _theList;
+			while ( p->next )
 				p = p->next;
-			p->next = new Node(element);
+			p->next = new Node( element );
 		}
 		else
 		{
-			theList = new Node(element);
+			_theList = new Node( element );
 		}
 		return false;
 	}
 
-	void merge(xmlList<T> * other)
+	void merge( xmlList<T>* other )
 	{
 		bool merged;
-		xmlList<T> * unmerged(new xmlList<T>);
-		Node * nextNodeToMerge(other->theList);
-		while (nextNodeToMerge) {
-			Node *p = nextNodeToMerge;
+		xmlList<T>* unmerged( new xmlList<T> );
+		Node* nextNodeToMerge( other->_theList );
+		while ( nextNodeToMerge )
+		{
+			Node* p = nextNodeToMerge;
 			nextNodeToMerge = nextNodeToMerge->next;
 			merged = false;
-			for (Node * q = theList; q; q = q->next)
+			for ( Node* q = _theList; q; q = q->next )
 			{
 				if ( p->e->name() == q->e->name() )
 				{
-					if ( q->e->merge(p->e) ) {
+					if ( q->e->merge( p->e ) )
+					{
 						merged = true;
 						delete p;
 						break;
@@ -315,172 +400,195 @@ public:
 			if ( ! merged )
 			{
 				p->next = 0;
-				if ( unmerged->size() ) {
-					Node * u = unmerged->theList;
+				if ( unmerged->size() )
+				{
+					Node* u = unmerged->_theList;
 					while ( u->next )
 						u = u->next;
 					u->next = p;
 				}
 				else
-					unmerged->theList = p;
+					unmerged->_theList = p;
 			}
 		}
 
-		if ( unmerged->size() ) {
-			Node * ptr = theList;
+		if ( unmerged->size() )
+		{
+			Node* ptr = _theList;
 			while ( ptr->next )
 				ptr = ptr->next;
-			ptr->next = unmerged->theList;
-			for ( ptr = unmerged->theList; ptr; ptr = ptr->next )
+			ptr->next = unmerged->_theList;
+			for ( ptr = unmerged->_theList; ptr; ptr = ptr->next )
 			{
-				ptr->e->reparent( theList->e->parent() );
+				ptr->e->reparent( _theList->e->parent() );
 			}
-			unmerged->theList = 0;
+			unmerged->_theList = 0;
 		}
 
 		delete unmerged;
-		other->theList = 0;
+		other->_theList = 0;
 	}
 
-	void print(int tabs = 0)
+	void print( int tabs = 0 ) const
 	{
-		for (Node *p = theList; p; p = p->next)
+		for ( Node* p = _theList; p; p = p->next )
 		{
-			for (int i = 0; i < tabs; ++i)
-				printf("\t");
-			p->e->print(tabs);
-			fflush(stdout);
+			for ( int i = 0; i < tabs; ++i )
+				printf( "\t" );
+			p->e->print( tabs );
+			fflush( stdout );
 		}
 	}
 
-	const T * find( const EmaString & nodeName, EmaConfigErrorList ** errors )
+	const T* find( const EmaString& nodeName, EmaConfigErrorList** errors ) const
 	{
-		static const char * dot(".");
-		int dotPosition(const_cast<EmaString &>(nodeName).find(dot, 0));
-		if (dotPosition == -1)
+		static const char* dot( "." );
+		int dotPosition( const_cast<EmaString&>( nodeName ).find( dot, 0 ) );
+		if ( dotPosition == -1 )
 		{
-			for( Node * p = theList; p; p = p->next )
-				if (p->e->name() == nodeName)
+			for ( Node* p = _theList; p; p = p->next )
+				if ( p->e->name() == nodeName )
 					return p->e;
 		}
-		else 
+		else
 		{
-			EmaString actualNodeName = nodeName.substr(0, dotPosition);
-			EmaString name = nodeName.substr(dotPosition + 1, nodeName.length() - dotPosition - 1);
-			T * retVal(0);
-			int arrayLoc(0);
-			for (Node * p = theList; p; p = p->next)
+			EmaString actualNodeName = nodeName.substr( 0, dotPosition );
+			EmaString name = nodeName.substr( dotPosition + 1, nodeName.length() - dotPosition - 1 );
+			T* retVal( 0 );
+			int arrayLoc( 0 );
+			for ( Node* p = _theList; p; p = p->next )
 			{
-					if (p->e->name() == actualNodeName) {
-						EmaString target("Name");
-						EmaString targetValue;
-						if (p->e->get(target, targetValue) && targetValue == name)
-							return p->e;
-						else if ( p->e->errors().count() )
-						{
-                            if ( ! *errors )
-                                *errors = new EmaConfigErrorList();
-                            (*errors)->add( p->e->errors() );
-                            p->e->errors().clear();
-						}
+				if ( p->e->name() == actualNodeName )
+				{
+					EmaString target( "Name" );
+					EmaString targetValue;
+					if ( p->e->get( target, targetValue ) && targetValue == name )
+						return p->e;
+					else if ( p->e->errors().count() )
+					{
+						if ( ! *errors )
+							*errors = new EmaConfigErrorList();
+						( *errors )->add( p->e->errors() );
+						p->e->errors().clear();
 					}
+				}
 			}
 			return retVal;
 		}
-			
+
 		return 0;
 	}
+
 	unsigned int size()
 	{
-		unsigned int retVal(0);
-		for (const Node * p = theList; p; p = p->next)
+		unsigned int retVal( 0 );
+		for ( const Node* p = _theList; p; p = p->next )
 			++retVal;
 		return retVal;
 	}
-	bool empty()
+
+	bool empty() const
 	{
-		return ( theList == 0 );
+		return _theList == 0 ? true : false;
 	}
-	const T * getFirst() { return theList->e; }
-	const T * getNext( const T * current )
+
+	T* getFirst() const
 	{
-		for ( Node * p = theList; p; p = p->next )
+		if ( _theList )
+			return _theList->e;
+		return 0;
+	}
+
+	T* getNext( const T* current ) const
+	{
+		for ( Node* p = _theList; p; p = p->next )
 		{
 			if ( p->e == current )
 				return p->next ? p->next->e : 0;
 		}
 		return 0;
 	}
-	~xmlList()
+
+	virtual ~xmlList()
 	{
-		Node * q;
-		for (Node * p = theList; p; p = q) {
+		Node* q;
+		for ( Node* p = _theList; p; p = q )
+		{
 			q = p->next;
-			delete(p->e);
-			delete(p);
+			delete( p->e );
+			delete( p );
 		}
 	}
+
 private:
-	struct Node {
-		Node(T * e) : e(e), next(0) {}
-		T * e;
-		Node * next;
+
+	struct Node
+	{
+		Node( T* e ) : e( e ), next( 0 ) {}
+		T* e;
+		Node* next;
 	};
-	Node * theList;
+
+	Node* _theList;
 };
 
 class XMLnode
 {
 public:
-	XMLnode(const EmaString & name, int level, XMLnode * parent) : _name(name), _parent(parent), _attributes(new ConfigElementList()), _children(new xmlList<XMLnode>), _level(level) {}
-	~XMLnode()
+
+	XMLnode( const EmaString& name, int level, XMLnode* parent ) : _name( name ), _parent( parent ), _attributes( new ConfigElementList() ), _children( new xmlList<XMLnode> ), _level( level ) {}
+
+	virtual ~XMLnode()
 	{
-		delete ( _attributes );
-		delete ( _children );
+		delete( _attributes );
+		delete( _children );
 		_errors.clear();
 	}
-	bool addChild(XMLnode * child)
+
+	bool addChild( XMLnode* child );
+
+	void addAttribute( ConfigElement* element )
 	{
-		return _children->insert(child);
+		_attributes->add( element );
 	}
-	void addAttribute(ConfigElement * element)
+
+	void appendAttributes( ConfigElementList* attributes, bool emptyList = false )
 	{
-		_attributes->add(element);
+		_attributes->appendAttributes( attributes, emptyList );
 	}
-	void appendAttributes(ConfigElementList * attributes, bool emptyList = false)
-	{
-		_attributes->appendAttributes(attributes, emptyList);
-	}
-	ConfigElementList * attributes()
+
+	ConfigElementList* attributes() const
 	{
 		return _attributes;
 	}
+
 	template<typename T>
-	bool get(const EmaString & itemToRetrieve, T & retrievedItem)
+	bool get( const EmaString& itemToRetrieve, T& retrievedItem )
 	{
-		T * found(find<T>(itemToRetrieve));
-		if (found) {
+		T* found( find<T>( itemToRetrieve ) );
+		if ( found )
+		{
 			retrievedItem = *found;
 			return true;
 		}
 		return false;
 	}
-	
-    template<typename T>
-    T *
-    find(const EmaString & itemToRetrieve) {
-       	// format: zero or more children followed by an attribute
+
+	template<typename T>
+	T* find( const EmaString& itemToRetrieve )
+	{
+		// format: zero or more children followed by an attribute
 		// each element separated by an '|' symbol
 		// for duplicate children names, which are common: childname.value of attribute name (i.e., each child must have a name)
 		// value must have Ascii type
 		// e.g., Sessions|session.Session_1|logger
-		Int32 substrBeginningPosition(0);
-		Int32 substrEndingPosition(0);
-		const char * nodeSeparator("|");
-		const char * nameSeparator(".");
+		Int32 substrBeginningPosition( 0 );
+		Int32 substrEndingPosition( 0 );
+		const char* nodeSeparator( "|" );
+		const char* nameSeparator( "." );
 		EmaString attributeName;
 
-		substrEndingPosition = static_cast<EmaString>(itemToRetrieve).find(nodeSeparator, substrBeginningPosition);
+		substrEndingPosition = static_cast<EmaString>( itemToRetrieve ).find( nodeSeparator, substrBeginningPosition );
 		if ( substrEndingPosition == -1 )
 		{
 			return _attributes->find<T>( itemToRetrieve );
@@ -488,112 +596,178 @@ public:
 		else
 		{
 			EmaString nodeName;
-			nodeName = static_cast<EmaString>(itemToRetrieve).substr(substrBeginningPosition, substrEndingPosition - substrBeginningPosition);
-			EmaConfigErrorList  * errors(0);
-			const XMLnode * tmp = _children->find(nodeName, &errors);
-			if (tmp) {
-				T * retVal(const_cast<XMLnode *>(tmp)->find<T>(itemToRetrieve.substr(substrEndingPosition + 1, itemToRetrieve.length() - substrEndingPosition - 1)));
-				if (! retVal) {
-					_errors.add(const_cast<XMLnode *>(tmp)->errors());
-					(const_cast<XMLnode *>(tmp)->errors().clear());
+			nodeName = static_cast<EmaString>( itemToRetrieve ).substr( substrBeginningPosition, substrEndingPosition - substrBeginningPosition );
+			EmaConfigErrorList*   errors( 0 );
+			const XMLnode* tmp = _children->find( nodeName, &errors );
+			if ( tmp )
+			{
+				T* retVal( const_cast<XMLnode*>( tmp )->find<T>( itemToRetrieve.substr( substrEndingPosition + 1, itemToRetrieve.length() - substrEndingPosition - 1 ) ) );
+				if ( ! retVal )
+				{
+					_errors.add( const_cast<XMLnode*>( tmp )->errors() );
+					( const_cast<XMLnode*>( tmp )->errors().clear() );
 				}
 				return retVal;
 			}
 			else if ( errors )
-				_errors.add(*errors);
+				_errors.add( *errors );
 			return 0;
 		}
 	}
 
-	void print(int tabs = 0);
-	const EmaString & name() { return _name; }
-        void name( const EmaString& n ) { _name = n; }
-	int level() { return _level; }
-	bool merge(XMLnode * newNode)
+	void print( int tabs = 0 );
+
+	const EmaString& name() const
+	{
+		return _name;
+	}
+
+	void name( const EmaString& n )
+	{
+		_name = n;
+	}
+
+	int level() const
+	{
+		return _level;
+	}
+
+	bool merge( XMLnode* newNode )
 	{
 		// we already know that node names match; check if we just need to merge subnodes.
 		EmaString errorMsg;
-		EmaString * name = _attributes->find<EmaString>( "Name" );
-		EmaString * newNodeName = newNode->_attributes->find<EmaString>( "Name" );
-		if ( name && newNodeName ) {
-			if ( *name == *newNodeName ) {
-				_attributes->appendAttributes(newNode->attributes());
+		EmaString* name = _attributes->find<EmaString>( "Name" );
+		EmaString* newNodeName = newNode->_attributes->find<EmaString>( "Name" );
+		if ( name && newNodeName )
+		{
+			if ( *name == *newNodeName )
+			{
+				_attributes->appendAttributes( newNode->attributes() );
 				return true;
 			}
 			else
 				return false;
 		}
 
-		// at this point, we have two nodes with the same name, but they are not subnodes. Merge
-		// attributes and then children
-		_attributes->appendAttributes(newNode->attributes());
-		_children->merge(newNode->_children);
+		// at this point, we have two nodes with the same name, but they are not subnodes.
+		// Merge attributes and then children
+		_attributes->appendAttributes( newNode->attributes() );
+		_children->merge( newNode->_children );
 		return true;
 	}
-	unsigned int size()
+
+	unsigned int size() const
 	{
-		return _children->size(); 
+		return _children->size();
 	}
-	XMLnode * parent()
+
+	XMLnode* parent()
 	{
 		return _parent;
 	}
-	void reparent(XMLnode * p)
+
+	void reparent( XMLnode* p )
 	{
 		_parent = p;
 	}
-	void appendErrorMessage( const EmaString & errorMsg, OmmLoggerClient::Severity severity);
-	int errorCount() { return _errors.count(); }
-	EmaConfigErrorList & errors() { return _errors; }
-	
+
+	void appendErrorMessage( const EmaString& errorMsg, OmmLoggerClient::Severity severity );
+
+	int errorCount()
+	{
+		return _errors.count();
+	}
+
+	EmaConfigErrorList& errors()
+	{
+		return _errors;
+	}
+
 	class NameString : public EmaString, public ListLinks< NameString >
 	{
 	public:
+
 		NameString() : EmaString() {}
-		NameString( EmaString & n ) : EmaString( n ) {}
+		NameString( EmaString& n ) : EmaString( n ) {}
+
+		virtual ~NameString() {}
 	};
 
 	void verifyDefaultConsumer();
 
-	void getNames( EmaList< NameString* > & theNames )
+	void verifyDefaultNiProvider();
+
+	void verifyDefaultDirectory();
+
+	void getServiceNameList( const EmaString&, EmaVector< EmaString >& );
+
+	void getAsciiAttributeValueList( const EmaString& nodeName, const EmaString& attributeName, EmaVector< EmaString >& valueList );
+
+	void getEntryNodeList( const EmaString& nodeName, const EmaString& entryName, EmaVector< XMLnode* >& entryNodeList );
+
+	void getNames( EmaList< NameString* >& theNames )
 	{
 		if ( _children && ! _children->empty() )
 		{
 			EmaString searchString( "Name" );
-			const XMLnode * child( _children->getFirst() );
+			const XMLnode* child( _children->getFirst() );
 			while ( child )
 			{
 				EmaString name;
-				bool found( const_cast< XMLnode * >(child)->get< EmaString >( searchString, name ) );
-				if ( found )
-				{
-					NameString * nS( new NameString( name ) );
-					theNames.insert( nS );
-				}
+				if ( const_cast< XMLnode* >( child )->get< EmaString >( searchString, name ) )
+					theNames.insert( new NameString( name ) );
 				child = _children->getNext( child );
 			}
 		}
 	}
 
+	template<typename T>
+	void getValues( const EmaString& attributeName, EmaVector< T >& values ) const
+	{
+		values.clear();
+		if ( _attributes )
+		{
+			ConfigElement* p = _attributes->first();
+			while ( p )
+			{
+				if ( p->name() == attributeName )
+				{
+					XMLConfigElement<T>* element = dynamic_cast<XMLConfigElement<T>* >( p );
+					if ( element )
+					{
+						values = *( element->values() );
+						return;
+					}
+				}
+				p = _attributes->next( p );
+			}
+		}
+	}
+
+	xmlList<XMLnode>* getChildren() const
+	{
+		return _children;
+	}
+
 private:
-	EmaString _name;
-	XMLnode * _parent;
-	ConfigElementList * _attributes;
-	xmlList<XMLnode> * _children;
-	int _level;
-	EmaConfigErrorList _errors;
+
+	EmaString			_name;
+	XMLnode*			_parent;
+	ConfigElementList*	_attributes;
+	xmlList<XMLnode>*	_children;
+	int					_level;
+	EmaConfigErrorList	_errors;
 };
 
 template< >
-inline XMLnode *
-XMLnode::find< XMLnode >(const EmaString & itemToRetrieve )
+inline XMLnode* XMLnode::find< XMLnode >( const EmaString& itemToRetrieve )
 {
-	Int32 begin(0), end;
-	const char * nodeSeparator( "|" );
+	Int32 begin( 0 ), end;
+	const char* nodeSeparator( "|" );
 	Int32 length( itemToRetrieve.length() );
 	EmaString nodeName;
-	XMLnode * tmp( this );
-	EmaConfigErrorList * e( new EmaConfigErrorList );
+	XMLnode* tmp( this );
+	EmaConfigErrorList* e( new EmaConfigErrorList );
 	EmaString foundPath;
 	while ( length )
 	{
@@ -613,7 +787,7 @@ XMLnode::find< XMLnode >(const EmaString & itemToRetrieve )
 			begin = end + 1;
 		}
 
-		tmp = const_cast< XMLnode *>( tmp->_children->find( nodeName, &e ) );
+		tmp = const_cast< XMLnode*>( tmp->_children->find( nodeName, &e ) );
 		if ( tmp )
 		{
 			if ( foundPath.length() )
@@ -635,6 +809,7 @@ class AdminReqMsg
 public :
 
 	AdminReqMsg( EmaConfigImpl& );
+
 	virtual ~AdminReqMsg();
 
 	AdminReqMsg& set( RsslRequestMsg* );
@@ -651,23 +826,48 @@ public :
 
 private :
 
-	EmaConfigImpl&	_emaConfigImpl;
-	RsslRequestMsg			_rsslMsg;
-	RsslBuffer				_name;
-	RsslBuffer				_header;
-	RsslBuffer				_attrib;
-	RsslBuffer				_payload;
-	bool					_hasServiceName;
-	EmaString				_serviceName;
+	EmaConfigImpl&		_emaConfigImpl;
+	RsslRequestMsg		_rsslMsg;
+	RsslBuffer			_name;
+	RsslBuffer			_header;
+	RsslBuffer			_attrib;
+	RsslBuffer			_payload;
+	bool				_hasServiceName;
+	EmaString			_serviceName;
+};
 
+class AdminRefreshMsg
+{
+public :
+
+	AdminRefreshMsg( EmaConfigImpl* );
+	AdminRefreshMsg( const AdminRefreshMsg & );
+	AdminRefreshMsg& operator=( const AdminRefreshMsg& );
+
+	virtual ~AdminRefreshMsg();
+
+	AdminRefreshMsg& clear();
+
+	AdminRefreshMsg& set( RsslRefreshMsg* );
+
+	RsslRefreshMsg* get();
+
+private :
+
+	EmaConfigImpl*		_pEmaConfigImpl;
+	RsslRefreshMsg		_rsslMsg;
+	RsslBuffer			_name;
+	RsslBuffer			_header;
+	RsslBuffer			_attrib;
+	RsslBuffer			_payload;
+	RsslBuffer			_statusText;
 };
 
 class LoginRdmReqMsg
 {
-  friend class OmmNiProviderConfigImpl;
 public :
 
-  LoginRdmReqMsg( EmaConfigImpl& );
+	LoginRdmReqMsg( EmaConfigImpl& );
 
 	virtual ~LoginRdmReqMsg();
 
@@ -687,133 +887,219 @@ public :
 
 	LoginRdmReqMsg& applicationName( const EmaString& );
 
+	LoginRdmReqMsg& instanceId( const EmaString& );
+
+	LoginRdmReqMsg& setRole( RDMLoginRoleTypes );
+
 private :
 
-	EmaConfigImpl&	_emaConfigImpl;
+	EmaConfigImpl&			_emaConfigImpl;
 	EmaString				_username;
 	EmaString				_password;
 	EmaString				_position;
 	EmaString				_applicationId;
 	EmaString				_applicationName;
+	EmaString				_instanceId;
 	RsslRDMLoginRequest		_rsslRdmLoginRequest;
+};
+
+struct PortSetViaFunctionCall
+{
+	bool userSet;
+	EmaString userSpecifiedValue;
+
+	PortSetViaFunctionCall()
+	{
+		userSet = false;
+		userSpecifiedValue = EmaString();
+	}
 };
 
 class EmaConfigImpl
 {
 public:
-	
-  EmaConfigImpl();
-  ~EmaConfigImpl();
 
-  void clear();
+	EmaConfigImpl();
+	virtual ~EmaConfigImpl();
 
-  void username( const EmaString& );
-  void password( const EmaString& ); 
-  void position( const EmaString& ); 
-  void applicationId( const EmaString& );
-  void applicationName( const EmaString& );
+	void clear();
 
-  void addAdminMsg( const ReqMsg& ); 
+	void username( const EmaString& );
+	void password( const EmaString& );
+	void position( const EmaString& );
+	void applicationId( const EmaString& );
+	void applicationName( const EmaString& );
+	void instanceId( const EmaString& );
 
-  void operationModel( OmmConsumerConfig::OperationModel ); 
-  void config( const Data& ); 
+	void addAdminMsg( const ReqMsg& );
 
-  OmmConsumerConfig::OperationModel getOperationModel() const;
+	void addAdminMsg( const RefreshMsg& );
 
-  void consumerName( const EmaString& );
-  virtual EmaString getUserName() const = 0;
-  EmaString getChannelName( const EmaString& ) const;
-  EmaString getLoggerName( const EmaString& ) const;
-  EmaString getDictionaryName( const EmaString& ) const;
-  virtual void modifyLoginRequest(LoginRdmReqMsg&) {}
+	void config( const Data& );
 
-  void host( const EmaString& );
+	OmmConsumerConfig::OperationModel getOperationModel() const;
 
-  template<typename T>
-  bool get(const EmaString & itemToRetrieve, T & retrievedItem) const
-  {
-    bool retVal(_pEmaConfig->get<T>(itemToRetrieve, retrievedItem));
-    if (! retVal) {
-      EmaString errorMsg("could not get value for item [");
-      errorMsg.append(itemToRetrieve).append("]; will use default value if available");
-      _pEmaConfig->appendErrorMessage(errorMsg, OmmLoggerClient::VerboseEnum);
-    }
-    return retVal;
-  }
+	virtual EmaString getConfiguredName() = 0;
 
-  template<typename T>
-  bool set(const EmaString & itemToSet, const T & newValue) const
-  {
-    T * item( _pEmaConfig->find<T>( itemToSet ) );
-    if ( item ) {
-      *item = newValue;
-      return true;
-    }
-    EmaString errorMsg("could not set value for item [");
-    errorMsg.append(itemToSet ).append( "] - item not found in configuration" );
-    _pEmaConfig->appendErrorMessage(errorMsg, OmmLoggerClient::VerboseEnum);
-    return false;
-  }
-	
-  EmaConfigErrorList & configErrors()
-  {
-    return _pEmaConfig->errors();
-  }
-  void print()
-  {
-    _pEmaConfig->print();
-    fflush(stdout);
-  }
+	void getChannelName( const EmaString&, EmaString& ) const;
 
-  void appendConfigError( const EmaString& text, OmmLoggerClient::Severity severityLevel )
-  {
-    _pEmaConfig->appendErrorMessage( text, severityLevel );
-  }
+	void getLoggerName( const EmaString&, EmaString& ) const;
 
-  RsslRDMLoginRequest* getLoginReq();
-  RsslRequestMsg* getDirectoryReq();
-  AdminReqMsg* getRdmFldDictionaryReq();
-  AdminReqMsg* getEnumDefDictionaryReq();
+	virtual bool getDictionaryName( const EmaString&, EmaString& ) const = 0;
 
-  EmaString & getUserSpecifiedHostname() { return _hostnameSetViaFunctionCall; }
-  EmaString & getUserSpecifiedPort() { return _portSetViaFunctionCall; }
-  ProgrammaticConfigure * pProgrammaticConfigure () { return _pProgrammaticConfigure; }
+	virtual bool getDirectoryName( const EmaString&, EmaString& ) const = 0;
 
-  OmmLoggerClient::Severity readXMLconfiguration(const EmaString &);
-  bool extractXMLdataFromCharBuffer(const EmaString &, const char *, int);
-  void processXMLnodePtr(XMLnode *, const xmlNodePtr &);
-  ConfigElement* convertEnum( const char* name, XMLnode*, const char* value, EmaString& );
-  ConfigElement* createConfigElement( const char * name, XMLnode*, const char* value, EmaString & );
-  bool validateConfigElement( const char *, ConfigElement::ConfigElementType );
-  void createNameToValueHashTable();
-  const EmaString& getUserNodeName() { return _userNodeName; }
-  
+	void host( const EmaString& );
+
+	const XMLnode* getNode( const EmaString& itemToRetrieve ) const;
+
+	template<typename T>
+	bool get( const EmaString& itemToRetrieve, T& retrievedItem ) const
+	{
+		int pos;
+		for ( pos = itemToRetrieve.length() - 1; pos >= 0; --pos )
+			if ( itemToRetrieve[pos] == '|' )
+				break;
+		if ( pos < 0 ) return false;
+		const XMLnode* node( getNode( itemToRetrieve.substr( 0, pos ) ) );
+		if ( node )
+		{
+			EmaVector< T > tmp;
+			node->getValues( itemToRetrieve.substr( pos + 1, EmaString::npos ), tmp );
+			if ( tmp.empty() )
+				return false;
+			retrievedItem = tmp[ tmp.size() - 1 ];
+		}
+		return node != 0;
+	}
+
+	template<typename S>
+	bool get( const EmaString& itemToRetrieve, EmaVector< S >& retrievedItem ) const
+	{
+		int pos;
+		for ( pos = itemToRetrieve.length() - 1; pos >= 0; --pos )
+			if ( itemToRetrieve[pos] == '|' )
+				break;
+		if ( pos < 0 ) return false;
+		const XMLnode* node( getNode( itemToRetrieve.substr( 0, pos ) ) );
+		if ( node )
+			node->getValues( itemToRetrieve.substr( pos + 1, EmaString::npos ), retrievedItem );
+		return node != 0;
+	}
+
+	template<typename T>
+	bool set( const EmaString& itemToSet, const T& newValue ) const
+	{
+		std::cout << "set called with itemToSet " << itemToSet << " with value "
+		          << newValue << std::endl;
+		T* item( _pEmaConfig->find<T>( itemToSet ) );
+		if ( item )
+		{
+			*item = newValue;
+			return true;
+		}
+		EmaString errorMsg( "could not set value for item [" );
+		errorMsg.append( itemToSet ).append( "] - item not found in configuration" );
+		_pEmaConfig->appendErrorMessage( errorMsg, OmmLoggerClient::VerboseEnum );
+		return false;
+	}
+
+	EmaConfigErrorList& configErrors()
+	{
+		return _pEmaConfig->errors();
+	}
+
+	void print()
+	{
+		_pEmaConfig->print();
+		fflush( stdout );
+	}
+
+	void appendConfigError( const EmaString& text, OmmLoggerClient::Severity severityLevel )
+	{
+		_pEmaConfig->appendErrorMessage( text, severityLevel );
+	}
+
+	RsslRDMLoginRequest* getLoginReq();
+
+	RsslRequestMsg* getDirectoryReq();
+
+	AdminReqMsg* getRdmFldDictionaryReq();
+
+	AdminReqMsg* getEnumDefDictionaryReq();
+
+	AdminRefreshMsg* getDirectoryRefreshMsg();
+
+	const EmaString& getUserSpecifiedHostname() const
+	{
+		return _hostnameSetViaFunctionCall;
+	}
+
+	const PortSetViaFunctionCall& getUserSpecifiedPort() const
+	{
+		return _portSetViaFunctionCall;
+	}
+
+	ProgrammaticConfigure* getProgrammaticConfigure()
+	{
+		return _pProgrammaticConfigure;
+	}
+
+	OmmLoggerClient::Severity readXMLconfiguration( const EmaString& );
+
+	bool extractXMLdataFromCharBuffer( const EmaString&, const char*, int );
+
+	void processXMLnodePtr( XMLnode*, const xmlNodePtr& );
+
+	ConfigElement* convertEnum( const char* name, XMLnode*, const char* value, EmaString& );
+
+	ConfigElement* createConfigElement( const char* name, XMLnode*, const char* value, EmaString& );
+
+	bool validateConfigElement( const char*, ConfigElement::ConfigElementType ) const;
+
+	void createNameToValueHashTable();
+
+	const EmaString& getInstanceNodeName() const
+	{
+		return _instanceNodeName;
+	}
+
+	void getServiceNames( const EmaString&, EmaVector< EmaString >& );
+
+	void getAsciiAttributeValueList( const EmaString&, const EmaString&, EmaVector< EmaString >& );
+
+	void getEntryNodeList( const EmaString& , const EmaString& , EmaVector< XMLnode* >& );
 
 protected:
-  OmmConsumerConfig::OperationModel		_operationModel;
-  UInt32 _handleHashTableSize;
 
-  XMLnode* _pEmaConfig;
+	XMLnode*				_pEmaConfig;
 
-  LoginRdmReqMsg			_loginRdmReqMsg;
-  AdminReqMsg*			_pDirectoryReqRsslMsg;
-  AdminReqMsg*			_pRdmFldReqRsslMsg;
-  AdminReqMsg*			_pEnumDefReqRsslMsg;
+	LoginRdmReqMsg			_loginRdmReqMsg;
 
-  EmaString _hostnameSetViaFunctionCall;
-  EmaString _portSetViaFunctionCall;
+	AdminReqMsg*			_pDirectoryRsslRequestMsg;
+	AdminReqMsg*			_pRdmFldRsslRequestMsg;
+	AdminReqMsg*			_pEnumDefRsslRequestMsg;
 
-  ProgrammaticConfigure* _pProgrammaticConfigure;
+	AdminRefreshMsg*		_pDirectoryRsslRefreshMsg;
 
-  EmaString _userNodeName;
+	EmaString				_hostnameSetViaFunctionCall;
+	PortSetViaFunctionCall		_portSetViaFunctionCall;
+
+	ProgrammaticConfigure*	_pProgrammaticConfigure;
+
+	EmaString				_instanceNodeName;
 
 	void addLoginReqMsg( RsslRequestMsg* );
+
 	void addDirectoryReqMsg( RsslRequestMsg* );
-	void addDictionaryReqMsg( RsslRequestMsg* , const EmaString* );
+
+	void addDictionaryReqMsg( RsslRequestMsg*, const EmaString* );
+
+	void addDirectoryRefreshMsg( RsslRefreshMsg* );
+
 private:
 
-  HashTable< EmaString, ConfigElement::ConfigElementType> nameToValueHashTable;
-
+	HashTable< EmaString, ConfigElement::ConfigElementType> nameToValueHashTable;
 };
 
 }
@@ -821,4 +1107,5 @@ private:
 }
 
 }
-#endif // __thomsonreuters_ema_access_OmmEmaConfigImpl_h
+
+#endif // __thomsonreuters_ema_access_EmaConfigImpl_h

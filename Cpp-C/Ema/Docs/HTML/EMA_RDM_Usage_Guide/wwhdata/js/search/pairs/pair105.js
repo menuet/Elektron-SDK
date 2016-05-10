@@ -1,0 +1,22 @@
+function FileData_Pairs(x)
+{
+x.t("api","edition");
+x.t("marketbyorder","domain");
+x.t("generic","message");
+x.t("supported","mmt_market_by_order");
+x.t("reuters","domain");
+x.t("domain","usage");
+x.t("domain","model");
+x.t("chapter","marketbyorder");
+x.t("mmt_market_by_order","reuters");
+x.t("message","api");
+x.t("message","(s)");
+x.t("usage","elektron");
+x.t("usage","note");
+x.t("elektron","message");
+x.t("(s)","supported");
+x.t("note","generic");
+x.t("7.2","usage");
+x.t("edition","7.2");
+x.t("model","chapter");
+}

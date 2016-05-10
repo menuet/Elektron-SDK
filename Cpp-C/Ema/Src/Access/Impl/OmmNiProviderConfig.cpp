@@ -14,11 +14,13 @@
 
 using namespace thomsonreuters::ema::access;
 
-OmmNiProviderConfig::OmmNiProviderConfig() : _pImpl( 0 )
+OmmNiProviderConfig::OmmNiProviderConfig() :
+	_pImpl( 0 )
 {
 	try {
 		_pImpl = new OmmNiProviderConfigImpl();
-	} catch ( std::bad_alloc ) {}
+	}
+	catch ( std::bad_alloc ) {}
 
 	if ( !_pImpl )
 		throwMeeException( "Failed to allocate memory for OmmNiProviderConfigImpl in OmmNiProviderConfig()" );
@@ -26,7 +28,8 @@ OmmNiProviderConfig::OmmNiProviderConfig() : _pImpl( 0 )
 
 OmmNiProviderConfig::~OmmNiProviderConfig()
 {
-	delete _pImpl;
+	if ( _pImpl )
+		delete _pImpl;
 }
 
 OmmNiProviderConfigImpl* OmmNiProviderConfig::getConfigImpl() const
@@ -34,20 +37,80 @@ OmmNiProviderConfigImpl* OmmNiProviderConfig::getConfigImpl() const
 	return _pImpl;
 }
 
+OmmNiProviderConfig& OmmNiProviderConfig::clear()
+{
+	_pImpl->clear();
+	return *this;
+}
+
 OmmNiProviderConfig& OmmNiProviderConfig::username( const EmaString& username )
 {
 	_pImpl->username( username );
-        return *this;
+	return *this;
+}
+
+OmmNiProviderConfig& OmmNiProviderConfig::password( const EmaString& password )
+{
+	_pImpl->password( password );
+	return *this;
+}
+
+OmmNiProviderConfig& OmmNiProviderConfig::position( const EmaString& position )
+{
+	_pImpl->position( position );
+	return *this;
+}
+
+OmmNiProviderConfig& OmmNiProviderConfig::applicationId( const EmaString& applicationId )
+{
+	_pImpl->applicationId( applicationId );
+	return *this;
+}
+
+OmmNiProviderConfig& OmmNiProviderConfig::instanceId( const EmaString& instanceId )
+{
+	_pImpl->instanceId( instanceId );
+	return *this;
 }
 
 OmmNiProviderConfig& OmmNiProviderConfig::host( const EmaString& host )
 {
-  _pImpl->host( host );
-        return *this;
+	_pImpl->host( host );
+	return *this;
 }
 
-
-OmmNiProviderConfig& OmmNiProviderConfig::niProviderName( const EmaString& niProviderName )
+OmmNiProviderConfig& OmmNiProviderConfig::operationModel( OperationModel operationModel )
 {
-        return *this;
+	_pImpl->operationModel( operationModel );
+	return *this;
+}
+
+OmmNiProviderConfig& OmmNiProviderConfig::adminControlDirectory( AdminControl control )
+{
+	_pImpl->adminControlDirectory( control );
+	return *this;
+}
+
+OmmNiProviderConfig& OmmNiProviderConfig::providerName( const EmaString& providerName )
+{
+	_pImpl->providerName( providerName );
+	return *this;
+}
+
+OmmNiProviderConfig& OmmNiProviderConfig::config( const Data& config )
+{
+	_pImpl->config( config );
+	return *this;
+}
+
+OmmNiProviderConfig& OmmNiProviderConfig::addAdminMsg( const ReqMsg& reqMsg )
+{
+	_pImpl->addAdminMsg( reqMsg );
+	return *this;
+}
+
+OmmNiProviderConfig& OmmNiProviderConfig::addAdminMsg( const RefreshMsg& refreshMsg )
+{
+	_pImpl->addAdminMsg( refreshMsg );
+	return *this;
 }

@@ -12,10 +12,11 @@
 #include "rtr/rsslReactor.h"
 #include "EmaList.h"
 #include "EmaVector.h"
+#include "Mutex.h"
 #include "OmmLoggerClient.h"
 
 namespace thomsonreuters {
-	
+
 namespace ema {
 
 namespace access {
@@ -27,18 +28,19 @@ class Dictionary;
 class StreamId;
 class ChannelConfig;
 
-class Channel : public ListLinks< Channel > 
+class Channel : public ListLinks< Channel >
 {
 public :
 
-	enum ChannelState {
+	enum ChannelState
+	{
 		ChannelDownEnum = 0,
 		ChannelDownReconnectingEnum,
 		ChannelUpEnum,
 		ChannelReadyEnum
 	};
 
-	static Channel* create( OmmBaseImpl& , const EmaString& , RsslReactor* );
+	static Channel* create( OmmBaseImpl&, const EmaString&, RsslReactor* );
 	static void destroy( Channel*& );
 
 	const EmaString& getName() const;
@@ -47,7 +49,7 @@ public :
 
 	RsslReactorChannel* getRsslChannel() const;
 	Channel& setRsslChannel( RsslReactorChannel* );
-	
+
 	RsslSocket getRsslSocket() const;
 	Channel& setRsslSocket( RsslSocket );
 
@@ -83,10 +85,12 @@ private :
 	Dictionary*				_pDictionary;
 	EmaList< Directory* >	_directoryList;
 	mutable bool			_toStringSet;
-	static Int32            nextStreamId;
-	static EmaList< StreamId* > recoveredStreamIds;
 
-	Channel( const EmaString& , RsslReactor* );
+	Int32					_nextStreamId;
+	EmaList< StreamId* >	_recoveredStreamIds;
+	Mutex					_streamIdMutex;
+
+	Channel( const EmaString&, RsslReactor* );
 	virtual ~Channel();
 
 	Channel();
@@ -115,7 +119,7 @@ public :
 
 	RsslReactorChannel* operator[]( UInt32 );
 
-	const Channel * front() const { return _list.front(); }
+	Channel* front() const;
 
 private :
 
@@ -129,19 +133,19 @@ class ChannelCallbackClient
 {
 public :
 
-	static ChannelCallbackClient* create( OmmBaseImpl& , RsslReactor* );
+	static ChannelCallbackClient* create( OmmBaseImpl&, RsslReactor* );
 
 	static void destroy( ChannelCallbackClient*& );
 
-	RsslReactorCallbackRet processCallback(  RsslReactor* , RsslReactorChannel* , RsslReactorChannelEvent* );
+	RsslReactorCallbackRet processCallback( RsslReactor*, RsslReactorChannel*, RsslReactorChannelEvent* );
 
-	void initialize( RsslRDMLoginRequest* , RsslRDMDirectoryRequest* );
+	void initialize( RsslRDMLoginRequest*, RsslRDMDirectoryRequest* );
 
 	void removeChannel( RsslReactorChannel* );
 
 	void closeChannels();
 
-	const ChannelList & getChannelList();
+	const ChannelList& getChannelList();
 
 private :
 

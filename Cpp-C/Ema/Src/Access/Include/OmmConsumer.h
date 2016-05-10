@@ -34,7 +34,7 @@
 	{
 		void onRefreshMsg( const RefreshMsg& , const OmmConsumerEvent& );
 		void onUpdateMsg( const UpdateMsg& , const OmmConsumerEvent& );
-		void onStatusMsg( const StatusMsg& , const OmmConsumerEvent&);
+		void onStatusMsg( const StatusMsg& , const OmmConsumerEvent& );
 	};
 
 	AppClient appClient;
@@ -54,7 +54,7 @@
 
 	\code
 
-	// create an implementation for OmmConsumerclient to process received item messages.
+	// create an implementation for OmmConsumerClient to process received item messages.
 	// this object will process tunnel item and sub item messages
 	class AppClient : public OmmConsumerClient
 	{
@@ -140,7 +140,7 @@ public :
 	*/ 
 	enum DispatchTimeout
 	{
-		InfiniteWaitEnum = -1,		/*!< dispatch  blocks till a message arrives */
+		InfiniteWaitEnum = -1,		/*!< dispatch blocks till a message arrives */
 		NoWaitEnum = 0				/*!< dispatch exits immediately even if there is no message */
 	};
 
@@ -248,12 +248,12 @@ public :
 
 	/** Relinquish application thread of control to receive callbacks via OmmConsumerClient descendant.
 		\remark Requires OperationalModel to be set to UserDispatchEnum.
-		@param[in] time-out specifies time in microseconds to wait in dispatch() for a message to dispatch
-		@return TimeoutEnum if nothing was dispatched; DispatchedEnum otherwise
+		@param[in] dispatchTimeout specifies time in microseconds to wait in dispatch() for a message to dispatch (DispatchTimeout enumerations provide predefined values)
+		@return DispatchReturn::TimeoutEnum if nothing was dispatched; DispatchReturn::DispatchedEnum otherwise
 		@throw OmmInvalidUsageException if OperationalModel is not set to UserDispatchEnum
 		\remark This method is \ref ObjectLevelSafe
 	*/
-	Int64 dispatch( Int64 timeOut = NoWaitEnum );
+	Int64 dispatch( Int64 dispatchTimeout = NoWaitEnum );
 
 	/** Relinquishes interest in an open item stream.
 		@param[in] handle identifies item to close

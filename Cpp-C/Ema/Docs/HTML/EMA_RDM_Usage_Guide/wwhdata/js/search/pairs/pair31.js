@@ -1,0 +1,23 @@
+function FileData_Pairs(x)
+{
+x.t("messges","currently");
+x.t("currently","used");
+x.t("api","edition");
+x.t("stream","chapter");
+x.t("supported","login");
+x.t("domain","usage");
+x.t("chapter","login");
+x.t("login","stream");
+x.t("login","domain");
+x.t("login","update");
+x.t("message","api");
+x.t("message","elektron");
+x.t("message","update");
+x.t("usage","login");
+x.t("elektron","message");
+x.t("3.2.6","login");
+x.t("edition","3.2.6");
+x.t("used","supported");
+x.t("update","messges");
+x.t("update","message");
+}

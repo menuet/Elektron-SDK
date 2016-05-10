@@ -1,0 +1,21 @@
+function FileData_Pairs(x)
+{
+x.t("genericmsg","(s)");
+x.t("yieldcurve","domain");
+x.t("api","edition");
+x.t("10.2","usage");
+x.t("supported","mmt_yield_curve");
+x.t("reuters","domain");
+x.t("domain","usage");
+x.t("domain","model");
+x.t("chapter","yieldcurve");
+x.t("message","api");
+x.t("usage","elektron");
+x.t("usage","note");
+x.t("elektron","message");
+x.t("(s)","supported");
+x.t("mmt_yield_curve","reuters");
+x.t("note","genericmsg");
+x.t("edition","10.2");
+x.t("model","chapter");
+}

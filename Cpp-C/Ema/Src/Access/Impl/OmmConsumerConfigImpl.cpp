@@ -29,13 +29,12 @@ using namespace thomsonreuters::ema::access;
 
 extern const EmaString& getDTypeAsString( DataType::DataTypeEnum dType );
 
-OmmConsumerConfigImpl::OmmConsumerConfigImpl()
-#ifdef WIN32
-#pragma warning( disable : 4355 )
-#endif
+OmmConsumerConfigImpl::OmmConsumerConfigImpl() :
+	EmaConfigImpl(),
+	_operationModel( OmmConsumerConfig::ApiDispatchEnum )
 {
-	_userNodeName = "ConsumerGroup|ConsumerList|Consumer.";
-	verifyXMLdefaultConsumer();
+	_instanceNodeName = "ConsumerGroup|ConsumerList|Consumer.";
+	_pEmaConfig->verifyDefaultConsumer();
 }
 
 OmmConsumerConfigImpl::~OmmConsumerConfigImpl()
@@ -45,15 +44,14 @@ OmmConsumerConfigImpl::~OmmConsumerConfigImpl()
 void OmmConsumerConfigImpl::consumerName( const EmaString& consumerName )
 {
 	if ( _pProgrammaticConfigure && _pProgrammaticConfigure->specifyConsumerName( consumerName ) )
-	{
 		return;
-	}
 
 	EmaString item( "ConsumerGroup|ConsumerList|Consumer." );
 	item.append( consumerName ).append( "|Name" );
 	EmaString name;
-	if ( get( item, name ) ) {
-		if ( ! set( "ConsumerGroup|DefaultConsumer", consumerName) )
+	if ( get( item, name ) )
+	{
+		if ( ! set( "ConsumerGroup|DefaultConsumer", consumerName ) )
 		{
 			EmaString mergeString( "<EmaConfig><ConsumerGroup><DefaultConsumer value=\"" );
 			mergeString.append( consumerName ).append( "\"/></ConsumerGroup></EmaConfig>" );
@@ -63,11 +61,11 @@ void OmmConsumerConfigImpl::consumerName( const EmaString& consumerName )
 			xmlNodePtr _xmlNodePtr = xmlDocGetRootElement( xmlDoc );
 			if ( _xmlNodePtr == NULL )
 				return;
-			if ( xmlStrcmp(_xmlNodePtr->name, (const xmlChar *) "EmaConfig" ) )
+			if ( xmlStrcmp( _xmlNodePtr->name, ( const xmlChar* ) "EmaConfig" ) )
 				return;
-			XMLnode * tmp( new XMLnode("EmaConfig", 0, 0) );
-			processXMLnodePtr(tmp, _xmlNodePtr);
-			_pEmaConfig->merge(tmp);
+			XMLnode* tmp( new XMLnode( "EmaConfig", 0, 0 ) );
+			processXMLnodePtr( tmp, _xmlNodePtr );
+			_pEmaConfig->merge( tmp );
 			xmlFreeDoc( xmlDoc );
 			delete tmp;
 		}
@@ -76,7 +74,7 @@ void OmmConsumerConfigImpl::consumerName( const EmaString& consumerName )
 	{
 		if ( consumerName == "EmaConsumer" )
 		{
-			XMLnode * consumerList( _pEmaConfig->find< XMLnode >( "ConsumerGroup|ConsumerList" ) );
+			XMLnode* consumerList( _pEmaConfig->find< XMLnode >( "ConsumerGroup|ConsumerList" ) );
 			if ( consumerList )
 			{
 				EmaList< XMLnode::NameString* > theNames;
@@ -89,18 +87,12 @@ void OmmConsumerConfigImpl::consumerName( const EmaString& consumerName )
 		}
 
 		EmaString errorMsg( "OmmConsumerConfigImpl::consumerName parameter [" );
-		errorMsg.append( consumerName ).append( "] is an non-existent consumer name" );
+		errorMsg.append( consumerName ).append( "] is a non-existent consumer name" );
 		throwIceException( errorMsg );
 	}
-
 }
 
-void OmmConsumerConfigImpl::verifyXMLdefaultConsumer()
-{
-	_pEmaConfig->verifyDefaultConsumer();
-}
-
-EmaString OmmConsumerConfigImpl::getUserName() const
+EmaString OmmConsumerConfigImpl::getConfiguredName()
 {
 	EmaString retVal;
 
@@ -128,38 +120,30 @@ EmaString OmmConsumerConfigImpl::getUserName() const
 	return "EmaConsumer";
 }
 
-
-void XMLnode::verifyDefaultConsumer()
+bool OmmConsumerConfigImpl::getDictionaryName( const EmaString& instanceName, EmaString& retVal ) const
 {
-	const EmaString searchString("ConsumerGroup|DefaultConsumer" );
-	const EmaString * defaultConsumerName ( find< EmaString >( searchString ) );
-	if ( defaultConsumerName )
+	if ( !_pProgrammaticConfigure || !_pProgrammaticConfigure->getActiveDictionaryName( instanceName, retVal ) )
 	{
-		XMLnode * consumerList( find< XMLnode >( "ConsumerGroup|ConsumerList" ) );
-		if ( consumerList )
-		{
-			EmaList< NameString* > theNames;
-			consumerList->getNames( theNames );
-
-			if ( theNames.empty() && *defaultConsumerName == "EmaConsumer" )
-				return;
-
-			NameString * name( theNames.pop_front() );
-			while ( name )
-			{
-				if ( *name == *defaultConsumerName )
-					return;
-				else name = theNames.pop_front();
-			}
-			EmaString errorMsg( "specified default consumer name [" );
-			errorMsg.append( *defaultConsumerName ).append( "] was not found in the configured consumers" );
-			throwIceException( errorMsg );
-		}
-		else if ( *defaultConsumerName != "EmaConsumer" )
-		{
-			EmaString errorMsg( "default consumer name [" );
-			errorMsg.append( *defaultConsumerName ).append( "] was specified, but no consumers were configured" );
-			throwIceException( errorMsg );
-		}
+		EmaString nodeName( _instanceNodeName );
+		nodeName.append( instanceName );
+		nodeName.append( "|Dictionary" );
+		get<EmaString>( nodeName, retVal );
 	}
+
+	return true;
+}
+
+bool OmmConsumerConfigImpl::getDirectoryName( const EmaString& instanceName, EmaString& retVal ) const
+{
+	return false;
+}
+
+void OmmConsumerConfigImpl::operationModel( OmmConsumerConfig::OperationModel operationModel )
+{
+	_operationModel = operationModel;
+}
+
+OmmConsumerConfig::OperationModel OmmConsumerConfigImpl::operationModel() const
+{
+	return _operationModel;
 }

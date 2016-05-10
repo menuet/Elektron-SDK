@@ -23,13 +23,31 @@ class OmmNiProviderConfigImpl : public EmaConfigImpl
 public:
 
 	OmmNiProviderConfigImpl();
-	~OmmNiProviderConfigImpl();
 
-	EmaString getUserName() const;
-  void modifyLoginRequest(LoginRdmReqMsg&);
+	virtual ~OmmNiProviderConfigImpl();
+
+	void clear();
+
+	void providerName( const EmaString& );
+
+	EmaString getConfiguredName();
+
+	void operationModel( OmmNiProviderConfig::OperationModel );
+
+	void adminControlDirectory( OmmNiProviderConfig::AdminControl );
+
+	OmmNiProviderConfig::OperationModel getOperationModel() const;
+
+	OmmNiProviderConfig::AdminControl getAdminControlDirectory() const;
+
+	bool getDictionaryName( const EmaString& , EmaString& ) const;
+
+	bool getDirectoryName( const EmaString& , EmaString& ) const;
 
 private:
 
+	OmmNiProviderConfig::OperationModel		_operationModel;
+	OmmNiProviderConfig::AdminControl		_adminControlDirectory;
 };
 
 }

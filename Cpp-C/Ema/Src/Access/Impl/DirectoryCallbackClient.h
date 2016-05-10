@@ -17,7 +17,7 @@
 #include "ItemCallbackClient.h"
 
 namespace thomsonreuters {
-	
+
 namespace ema {
 
 namespace access {
@@ -91,15 +91,15 @@ public :
 
 	const EmaString& getName() const;
 	Info& setName( const EmaString& );
-	Info& setName( const char* , UInt32 );
+	Info& setName( const char*, UInt32 );
 
 	const EmaString& getVendor() const;
 	Info& setVendor( const EmaString& );
-	Info& setVendor( const char* , UInt32 );
+	Info& setVendor( const char*, UInt32 );
 
 	const EmaString& getItemList() const;
 	Info& setItemList( const EmaString& );
-	Info& setItemList( const char* , UInt32 );
+	Info& setItemList( const char*, UInt32 );
 
 	UInt64 getIsSource() const;
 	Info& setIsSource( UInt64 );
@@ -109,11 +109,11 @@ public :
 
 	const DictionaryList& getDictionariesProvided() const;
 	Info& addDictionaryProvided( const EmaString& );
-	Info& addDictionaryProvided( const char* , UInt32 );
+	Info& addDictionaryProvided( const char*, UInt32 );
 
 	const DictionaryList& getDictionariesUsed() const;
 	Info& addDictionaryUsed( const EmaString& );
-	Info& addDictionaryUsed( const char* , UInt32 );
+	Info& addDictionaryUsed( const char*, UInt32 );
 
 private :
 
@@ -164,7 +164,7 @@ private :
 
 typedef const EmaString* EmaStringPtr;
 
-class Directory : public ListLinks< Directory > 
+class Directory : public ListLinks< Directory >
 {
 public :
 
@@ -183,7 +183,7 @@ public :
 	const EmaString& getName() const;
 	EmaStringPtr getNamePtr() const;
 	Directory& setName( const EmaString& );
-	Directory& setName( const char* , UInt32 );
+	Directory& setName( const char*, UInt32 );
 
 	UInt64 getId() const;
 	Directory& setId( UInt64 );
@@ -224,7 +224,7 @@ public :
 
 	void initialize();
 
-	RsslReactorCallbackRet processCallback(  RsslReactor* , RsslReactorChannel* , RsslRDMDirectoryMsgEvent* );
+	RsslReactorCallbackRet processCallback( RsslReactor*, RsslReactorChannel*, RsslRDMDirectoryMsgEvent* );
 
 	RsslRDMDirectoryRequest* getDirectoryRequest();
 
@@ -234,33 +234,37 @@ public :
 
 private :
 
-	class EmaStringPtrHasher {
+	class EmaStringPtrHasher
+	{
 	public:
-		size_t operator()( const EmaStringPtr & ) const;
+		size_t operator()( const EmaStringPtr& ) const;
 	};
 
-	class EmaStringPtrEqual_To {
+	class EmaStringPtrEqual_To
+	{
 	public:
-		bool operator()( const EmaStringPtr & , const EmaStringPtr & ) const;
+		bool operator()( const EmaStringPtr&, const EmaStringPtr& ) const;
 	};
 
 	typedef HashTable< EmaStringPtr , DirectoryPtr , EmaStringPtrHasher , EmaStringPtrEqual_To > DirectoryByName;
 
-	class UInt64rHasher {
+	class UInt64rHasher
+	{
 	public:
-		size_t operator()( const UInt64 & ) const;
+		size_t operator()( const UInt64& ) const;
 	};
 
-	class UInt64Equal_To {
+	class UInt64Equal_To
+	{
 	public:
-		bool operator()( const UInt64 & , const UInt64 & ) const;
+		bool operator()( const UInt64&, const UInt64& ) const;
 	};
 
 	typedef HashTable< UInt64 , DirectoryPtr , UInt64rHasher , UInt64Equal_To > DirectoryById;
 
-	RsslReactorCallbackRet processCallback( RsslReactor* , RsslReactorChannel* , RsslRDMDirectoryMsgEvent* , SingleItem* );
+	RsslReactorCallbackRet processCallback( RsslReactor*, RsslReactorChannel*, RsslRDMDirectoryMsgEvent*, SingleItem* );
 
-	void processDirectoryPayload( UInt32 , RsslRDMService* , void* );
+	void processDirectoryPayload( UInt32 , RsslRDMService*, void* );
 
 	void addDirectory( Directory* );
 
@@ -277,8 +281,6 @@ private :
 	EmaList< Directory* >			_directoryList;
 
 	OmmBaseImpl&					_ommBaseImpl;
-
-	OmmConsumerEvent				_event;
 
 	RefreshMsg						_refreshMsg;
 
@@ -301,7 +303,7 @@ class DirectoryItem : public Item
 {
 public :
 
-	static DirectoryItem * create( OmmBaseImpl&, ClientFunctions&, void* closure, const Channel* );
+	static DirectoryItem* create( OmmBaseImpl&, ClientFunctions*, void* closure, const Channel* );
 
 	const Directory* getDirectory();
 
@@ -313,20 +315,23 @@ public :
 	void remove();
 	bool submit( RsslGenericMsg* );
 
-	ItemType getType() const { return Item::DirectoryItemEnum; }
+	ItemType getType() const
+	{
+		return Item::DirectoryItemEnum;
+	}
 
 private :
 
 	static const EmaString		_clientName;
-	const Channel*				_channel;
 
-	const Directory*					_pDirectory;
-	ClosedStatusInfo*					_closedStatusInfo;
+	const Channel*				_channel;
+	const Directory*			_pDirectory;
+	ClosedStatusInfo*			_closedStatusInfo;
 
 	bool submit( RsslRequestMsg* );
 	bool submit( RsslCloseMsg* );
 
-	DirectoryItem( OmmBaseImpl&, ClientFunctions&, void* closure, const Channel * );
+	DirectoryItem( OmmBaseImpl&, ClientFunctions*, void* closure, const Channel* );
 	DirectoryItem();
 	virtual ~DirectoryItem();
 	DirectoryItem( const BatchItem& );

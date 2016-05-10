@@ -10,11 +10,10 @@
 #define __thomsonreuters_ema_access_OmmNiProviderImpl_h
 
 #include "OmmBaseImpl.h"
-#include "OmmNiProviderClient.h"	// from Include (unchanged)
-#include "OmmNiProviderErrorClient.h"	// from Include (unchanged)
-#include "Thread.h"
+#include "OmmNiProviderClient.h"
+#include "OmmProviderErrorClient.h"
 #include "OmmNiProviderActiveConfig.h"
-#include "OmmClient.h"
+#include "OmmProviderImpl.h"
 
 namespace thomsonreuters {
 
@@ -24,60 +23,111 @@ namespace access {
 
 typedef const EmaString* EmaStringPtr;
 
-class ItemCallbackClient;
-
-class OmmNiProviderImpl : public OmmBaseImpl
+class OmmNiProviderImpl : public OmmProviderImpl, public OmmBaseImpl
 {
 public :
 
 	OmmNiProviderImpl( const OmmNiProviderConfig& );
-	OmmNiProviderImpl( const OmmNiProviderConfig& , OmmNiProviderErrorClient& );
+
+	OmmNiProviderImpl( const OmmNiProviderConfig&, OmmProviderErrorClient& );
 
 	virtual ~OmmNiProviderImpl();
-  void uninitialize();
 
-	UInt64 registerClient( const ReqMsg& , OmmNiProviderClient& , void* closure = 0, UInt64 parentHandle = 0 ); 
+	UInt64 registerClient( const ReqMsg& , OmmProviderClient& , void* closure = 0, UInt64 parentHandle = 0 );
+
+	void unregister( UInt64 );
+
 	Int64 dispatch( Int64 timeOut = 0 ); 
+
 	void addSocket( RsslSocket );
+
 	void removeSocket( RsslSocket );
-  void setRsslReactorChannelRole( RsslReactorChannelRole& );
-  void submit( const RefreshMsg&, UInt64 handle = 0 );
-  void submit( const UpdateMsg&, UInt64 handle = 0 );
-  void submit( const StatusMsg&, UInt64 handle = 0 );
+
+	void setRsslReactorChannelRole( RsslReactorChannelRole& );
+
+	void submit( const RefreshMsg&, UInt64 );
+
+	void submit( const UpdateMsg&, UInt64 );
+
+	void submit( const StatusMsg&, UInt64 );
+
+	void submit( const GenericMsg&, UInt64 );
+
+	void loadDirectory();
+
+	void reLoadDirectory();
+
+	void loadDictionary();
+
+	void createDictionaryCallbackClient( DictionaryCallbackClient*&, OmmBaseImpl& );
+
+	void createDirectoryCallbackClient( DirectoryCallbackClient*&, OmmBaseImpl& );
+
+	void processChannelEvent( RsslReactorChannelEvent* );
+
+	const EmaString& getInstanceName() const;
 
 private :
-  OmmClient< OmmNiProviderClient >* _theClient;
-  OmmNiProviderActiveConfig _activeConfig;
-  OmmNiProviderErrorClient* _ommNiProviderErrorClient;
 
-  void decodeServiceNameAndId( const Channel* channel, RwfBuffer* buffer ); 
+	void removeItems();
 
+	void readCustomConfig( EmaConfigImpl* );
 
-	class UInt64rHasher {
+	void populateDefaultService( ServiceConfig& ) const;
+
+	void freeMemory( RsslRDMDirectoryRefresh& , RsslBuffer& );
+
+	bool decodeSourceDirectory( RwfBuffer* , RsslBuffer* , EmaString& );
+
+	bool decodeSourceDirectoryKeyUInt( RsslMap& , RsslDecodeIterator& , EmaString& );
+
+	bool decodeSourceDirectoryKeyAscii( RsslMap& , RsslDecodeIterator& , EmaString& );
+
+	bool swapServiceNameAndId( RsslBuffer* , RsslBuffer* , EmaString& );
+
+	bool realocateBuffer( RsslBuffer* , RsslBuffer* , RsslEncodeIterator* , EmaString& );
+
+	bool isApiDispatching() const;
+
+	OmmNiProviderImpl();
+	OmmNiProviderImpl( const OmmNiProviderImpl& );
+	OmmNiProviderImpl& operator=( const OmmNiProviderImpl& );
+
+	class UInt64rHasher
+	{
 	public:
-		size_t operator()( const UInt64 & ) const;
+		size_t operator()( const UInt64& ) const;
 	};
 
-	class UInt64Equal_To {
+	class UInt64Equal_To
+	{
 	public:
-		bool operator()( const UInt64 & , const UInt64 & ) const;
+		bool operator()( const UInt64&, const UInt64& ) const;
 	};
 
-	class EmaStringPtrHasher {
+	class EmaStringPtrHasher
+	{
 	public:
-		size_t operator()( const EmaStringPtr & ) const;
+		size_t operator()( const EmaStringPtr& ) const;
 	};
 
-	class EmaStringPtrEqual_To {
+	class EmaStringPtrEqual_To
+	{
 	public:
-		bool operator()( const EmaStringPtr & , const EmaStringPtr & ) const;
+		bool operator()( const EmaStringPtr&, const EmaStringPtr& ) const;
 	};
 
-  typedef HashTable< UInt64 , Int32 , UInt64rHasher , UInt64Equal_To > HandleToStreamId;
-  typedef HashTable< EmaStringPtr , UInt64 , EmaStringPtrHasher , EmaStringPtrEqual_To > ServiceNameToServiceId;
+	typedef HashTable< UInt64 , Int32 , UInt64rHasher , UInt64Equal_To > HandleToStreamId;
+	typedef HashTable< EmaStringPtr , UInt64 , EmaStringPtrHasher , EmaStringPtrEqual_To > ServiceNameToServiceId;
+	typedef HashTable< UInt64 , EmaStringPtr , UInt64rHasher , UInt64Equal_To > ServiceIdToServiceName;
+	typedef EmaVector< EmaStringPtr > ServiceNameList;
 
-	HandleToStreamId					_handleToStreamId;
-	ServiceNameToServiceId				_serviceNameToServiceId;
+	OmmNiProviderActiveConfig		_activeConfig;
+	HandleToStreamId				_handleToStreamId;
+	ServiceNameToServiceId			_serviceNameToServiceId;
+	ServiceIdToServiceName			_serviceIdToServiceName;
+	ServiceNameList					_serviceNameList;
+	bool							_bIsStreamIdZeroRefreshSubmitted;
 };
 
 }

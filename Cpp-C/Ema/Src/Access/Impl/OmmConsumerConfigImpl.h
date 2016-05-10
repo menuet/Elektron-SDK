@@ -29,16 +29,24 @@ class OmmConsumerConfigImpl : public EmaConfigImpl
 public:
 
 	OmmConsumerConfigImpl();
+
 	virtual ~OmmConsumerConfigImpl();
 
 	void consumerName( const EmaString& );
-	EmaString getUserName() const;
+
+	EmaString getConfiguredName();
+
+	void operationModel( OmmConsumerConfig::OperationModel );
+
+	OmmConsumerConfig::OperationModel operationModel() const;
+
+	bool getDictionaryName( const EmaString& , EmaString& ) const;
+
+	bool getDirectoryName( const EmaString& , EmaString& ) const;
 
 private:
 
-	void verifyXMLdefaultConsumer();
-
-	EmaString				_consumerName;
+	OmmConsumerConfig::OperationModel		_operationModel;
 };
 
 }

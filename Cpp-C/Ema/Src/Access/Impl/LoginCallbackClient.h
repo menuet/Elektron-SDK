@@ -31,7 +31,7 @@ namespace access {
 class Channel;
 class OmmBaseImpl;
 
-class Login : public ListLinks< Login > 
+class Login : public ListLinks< Login >
 {
 public :
 
@@ -40,16 +40,20 @@ public :
 	static void destroy( Login*& );
 
 	Login& set( RsslRDMLoginRefresh* );
+
 	Login& set( RsslRDMLoginRequest* );
 
 	const EmaString& toString();
 
 	Channel* getChannel() const;
+
 	Login& setChannel( Channel* );
 
 	void sendLoginClose();
 
-	bool populate( RsslRefreshMsg& , RsslBuffer& );
+	bool populate( RsslRefreshMsg&, RsslBuffer& );
+
+	bool populate( RsslStatusMsg&, RsslBuffer& );
 
 private :
 
@@ -58,6 +62,7 @@ private :
 	EmaString		_position;
 	EmaString		_applicationId;
 	EmaString		_applicationName;
+	EmaString		_instanceId;
 	EmaString		_toString;
 	Channel*		_pChannel;
 	UInt64			_supportBatchRequest;
@@ -79,6 +84,7 @@ private :
 	bool			_positionSet;
 	bool			_applicationIdSet;
 	bool			_applicationNameSet;
+	bool			_instanceIdSet;
 	bool			_stateSet;
 
 	Login();
@@ -120,9 +126,9 @@ class LoginItem : public SingleItem
 {
 public :
 
-	static LoginItem* create( OmmBaseImpl& , ClientFunctions& , void* , const LoginList& );
+	static LoginItem* create( OmmBaseImpl&, ClientFunctions*, void*, const LoginList& );
 
-	bool open( RsslRDMLoginRequest* , const LoginList& );
+	bool open( RsslRDMLoginRequest*, const LoginList& );
 	bool modify( const ReqMsg& );
 	bool submit( const PostMsg& );
 	bool submit( const GenericMsg& );
@@ -135,12 +141,12 @@ private :
 	bool submit( RsslRequestMsg* );
 	bool submit( RsslGenericMsg* );
 	bool submit( RsslPostMsg* );
-		
+
 	static const EmaString		_clientName;
 
 	const LoginList*			_loginList;
 
-	LoginItem( OmmBaseImpl& , ClientFunctions& , void* , const LoginList& );
+	LoginItem( OmmBaseImpl&, ClientFunctions*, void*, const LoginList& );
 	LoginItem();
 	virtual ~LoginItem();
 	LoginItem( const LoginItem& );
@@ -157,19 +163,23 @@ public :
 
 	void initialize();
 
-	RsslReactorCallbackRet processCallback(  RsslReactor* , RsslReactorChannel* , RsslRDMLoginMsgEvent* );
+	RsslReactorCallbackRet processCallback( RsslReactor*, RsslReactorChannel*, RsslRDMLoginMsgEvent* );
 
 	RsslRDMLoginRequest* getLoginRequest();
 
 	UInt32 sendLoginClose();
 
-	LoginItem* getLoginItem( const ReqMsg& , ClientFunctions& , void* );
+	LoginItem* getLoginItem( const ReqMsg&, ClientFunctions*, void* );
 
-	void sendInternalMsg( LoginItem * );
+	void sendInternalMsg( LoginItem* );
 
-	RsslReactorCallbackRet processAckMsg( RsslMsg* , RsslReactorChannel* , RsslRDMLoginMsgEvent* );
-	
-	static void handleLoginItemCallback ( void * );
+	RsslReactorCallbackRet processAckMsg( RsslMsg*, RsslReactorChannel*, RsslRDMLoginMsgEvent* );
+
+	static void handleLoginItemCallback( void* );
+
+	const EmaString& getLoginFailureMessage();
+
+	void processChannelEvent( RsslReactorChannelEvent* );
 
 private :
 
@@ -178,7 +188,7 @@ private :
 	Mutex							_loginItemLock;
 
 	LoginList						_loginList;
-	
+
 	RsslRDMLoginRequest				_loginRequestMsg;
 
 	char*							_loginRequestBuffer;
@@ -191,18 +201,18 @@ private :
 
 	AckMsg							_ackMsg;
 
-	OmmConsumerEvent				_event;
-
 	OmmBaseImpl&					_ommBaseImpl;
 
 	Login*							_requestLogin;
 
 	EmaVector< LoginItem* >			_loginItems;
 
-	RsslReactorCallbackRet processGenericMsg( RsslMsg* , RsslReactorChannel* , RsslRDMLoginMsgEvent* );
-	RsslReactorCallbackRet processRefreshMsg( RsslMsg* , RsslReactorChannel* , RsslRDMLoginMsgEvent* );
-	RsslReactorCallbackRet processStatusMsg( RsslMsg* , RsslReactorChannel* , RsslRDMLoginMsgEvent* );
-	bool convertRdmLoginToRsslBuffer( RsslReactorChannel* , RsslRDMLoginMsgEvent* , RsslBuffer* );
+	EmaString _loginFailureMsg;
+
+	RsslReactorCallbackRet processGenericMsg( RsslMsg*, RsslReactorChannel*, RsslRDMLoginMsgEvent* );
+	RsslReactorCallbackRet processRefreshMsg( RsslMsg*, RsslReactorChannel*, RsslRDMLoginMsgEvent* );
+	RsslReactorCallbackRet processStatusMsg( RsslMsg*, RsslReactorChannel*, RsslRDMLoginMsgEvent* );
+	bool convertRdmLoginToRsslBuffer( RsslReactorChannel*, RsslRDMLoginMsgEvent*, RsslBuffer* );
 
 	LoginCallbackClient( OmmBaseImpl& );
 	virtual ~LoginCallbackClient();
@@ -212,10 +222,11 @@ private :
 	LoginCallbackClient& operator=( const LoginCallbackClient& );
 };
 
-struct LoginItemCreationCallbackStruct {
-	LoginItemCreationCallbackStruct( LoginCallbackClient  * lcbc, LoginItem * li ) : loginCallbackClient( lcbc ), loginItem( li ) {}
-	LoginCallbackClient * loginCallbackClient;
-	LoginItem * loginItem;
+struct LoginItemCreationCallbackStruct
+{
+	LoginItemCreationCallbackStruct( LoginCallbackClient*   lcbc, LoginItem* li ) : loginCallbackClient( lcbc ), loginItem( li ) {}
+	LoginCallbackClient* loginCallbackClient;
+	LoginItem* loginItem;
 };
 
 }

@@ -10,34 +10,34 @@
 #include "OmmConsumerConfig.h"
 #include "OmmConsumerImpl.h"
 
+#include <new>
+
 using namespace thomsonreuters::ema::access;
 
 OmmConsumer::OmmConsumer( const OmmConsumerConfig& config ) :
- _pImpl( 0 )
+	_pImpl( 0 )
 {
-	try {
+	try
+	{
 		_pImpl = new OmmConsumerImpl( config );
-	} catch ( std::bad_alloc ) {}
+	}
+	catch ( std::bad_alloc ) {}
 
 	if ( !_pImpl )
-	{
-		const char* temp = "Failed to allocate memory for OmmConsumerImpl in OmmConsumer( const OmmConsumerConfig& ).";
-		throwMeeException( temp );
-	}
+		throwMeeException( "Failed to allocate memory for OmmConsumerImpl in OmmConsumer( const OmmConsumerConfig& )." );
 }
 
 OmmConsumer::OmmConsumer( const OmmConsumerConfig& config, OmmConsumerErrorClient& client ) :
- _pImpl( 0 )
+	_pImpl( 0 )
 {
-	try {
+	try
+	{
 		_pImpl = new OmmConsumerImpl( config, client );
-	} catch ( std::bad_alloc ) {}
+	}
+	catch ( std::bad_alloc ) {}
 
 	if ( !_pImpl )
-	{
-		const char* temp = "Failed to allocate memory for OmmConsumerImpl in OmmConsumer( const OmmConsumerConfig& , OmmConsumerErrorClient& ).";
-		client.onMemoryExhaustion( temp );
-	}
+		client.onMemoryExhaustion( "Failed to allocate memory for OmmConsumerImpl in OmmConsumer( const OmmConsumerConfig& , OmmConsumerErrorClient& )." );
 }
 
 OmmConsumer::~OmmConsumer()
@@ -46,7 +46,12 @@ OmmConsumer::~OmmConsumer()
 		delete _pImpl;
 }
 
-UInt64 OmmConsumer::registerClient( const ReqMsg& reqMsg, OmmConsumerClient& client, void* closure, UInt64 parentHandle ) 
+const EmaString& OmmConsumer::getConsumerName() const
+{
+	return _pImpl->getInstanceName();
+}
+
+UInt64 OmmConsumer::registerClient( const ReqMsg& reqMsg, OmmConsumerClient& client, void* closure, UInt64 parentHandle )
 {
 	return _pImpl->registerClient( reqMsg, client, closure, parentHandle );
 }
@@ -56,7 +61,7 @@ UInt64 OmmConsumer::registerClient( const TunnelStreamRequest& tunnelStreamReque
 	return _pImpl->registerClient( tunnelStreamRequest, client, closure );
 }
 
-void OmmConsumer::reissue( const ReqMsg& reqMsg, UInt64 handle ) 
+void OmmConsumer::reissue( const ReqMsg& reqMsg, UInt64 handle )
 {
 	return _pImpl->reissue( reqMsg, handle );
 }

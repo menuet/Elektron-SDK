@@ -1,0 +1,23 @@
+function FileData_Pairs(x)
+{
+x.t("dictionarytype","stylesheet");
+x.t("dictionarytype","elektron");
+x.t("api","edition");
+x.t("5.7.3","stylesheet");
+x.t("dictionary","domain");
+x.t("dictionary","types");
+x.t("dictionary","contains");
+x.t("domain","dictionary");
+x.t("stylesheet","dictionarytype");
+x.t("stylesheet","dictionary");
+x.t("xslt","css");
+x.t("chapter","dictionary");
+x.t("types","stylesheet");
+x.t("message","api");
+x.t("elektron","message");
+x.t("sheet","chapter");
+x.t("edition","5.7.3");
+x.t("style","sheet");
+x.t("css","style");
+x.t("contains","xslt");
+}

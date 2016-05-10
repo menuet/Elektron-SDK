@@ -1,0 +1,21 @@
+function FileData_Pairs(x)
+{
+x.t("apply","login");
+x.t("status","group");
+x.t("status","messages");
+x.t("status","elektron");
+x.t("group","service");
+x.t("api","edition");
+x.t("messages","apply");
+x.t("domain","chapter");
+x.t("domain","special");
+x.t("chapter","login");
+x.t("3.4.5","group");
+x.t("message","api");
+x.t("login","domain");
+x.t("elektron","message");
+x.t("semantics","group");
+x.t("edition","3.4.5");
+x.t("service","status");
+x.t("special","semantics");
+}
