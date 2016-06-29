@@ -61,14 +61,16 @@ public class NiProvider
             summary.add(EmaFactory.createFieldEntry().enumValue(3423, 1));
             summary.add(EmaFactory.createFieldEntry().enumValue(1709, 2));
             
+            map.clear();
+            
+            map.summaryData(summary);
+
             entryLoad.clear();
             
             entryLoad.add(EmaFactory.createFieldEntry().realFromDouble(3427, 9.92));
             entryLoad.add(EmaFactory.createFieldEntry().realFromDouble(3429, 1200));
             entryLoad.add(EmaFactory.createFieldEntry().enumValue(3428, 2));
             entryLoad.add(EmaFactory.createFieldEntry().rmtes(212, ByteBuffer.wrap("Market Maker".getBytes())));
-            
-            map.clear();
             
             map.add(EmaFactory.createMapEntry().keyAscii("222", MapEntry.MapAction.ADD, entryLoad));
             

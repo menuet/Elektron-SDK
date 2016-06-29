@@ -15,10 +15,8 @@ import com.thomsonreuters.ema.access.Map;
 import com.thomsonreuters.ema.access.OmmException;
 import com.thomsonreuters.ema.access.OmmNiProviderConfig;
 import com.thomsonreuters.ema.access.OmmProvider;
-import com.thomsonreuters.ema.access.OmmReal;
 import com.thomsonreuters.ema.access.OmmReal.MagnitudeType;
 import com.thomsonreuters.ema.access.OmmState;
-import com.thomsonreuters.ema.access.RmtesBuffer;
 import com.thomsonreuters.upa.codec.MapEntryActions;
 import com.thomsonreuters.upa.rdm.DomainTypes;
 
@@ -68,7 +66,7 @@ public class NiProvider {
 				map = EmaFactory.createMap();
 				map.add(EmaFactory.createMapEntry().keyAscii("100", MapEntryActions.ADD, mapKeyAscii));
 
-				provider.submit( EmaFactory.createUpdateMsg().domainType(DomainTypes.MARKET_BY_ORDER).payload( map ), itemHandle );
+				provider.submit( EmaFactory.createUpdateMsg().serviceName("NI_PUB").name("AAO.V").domainType(DomainTypes.MARKET_BY_ORDER).payload( map ), itemHandle );
 				Thread.sleep(1000);
 			}
 		} 

@@ -5,7 +5,7 @@
 //*|           Copyright Thomson Reuters 2016. All rights reserved.            --
 ///*|-----------------------------------------------------------------------------
 
-package com.thomsonreuters.ema.examples.training.niprovider.series300.example300_marketPrice_Streaming;
+package com.thomsonreuters.ema.examples.training.niprovider.series300.example300__MarketPrice__Streaming;
 
 
 import com.thomsonreuters.ema.access.ElementList;
@@ -35,7 +35,7 @@ public class NiProvider {
 			OmmNiProviderConfig config = EmaFactory.createOmmNiProviderConfig();
 			
 			provider = EmaFactory.createOmmProvider(config.adminControlDirectory(OmmNiProviderConfig.AdminControl.USER_CONTROL)
-					.host("localhost:14003").username("user"));
+					.username("user"));			
 			
 			long sourceDirectoryHandle = 1;
 						
@@ -86,7 +86,7 @@ public class NiProvider {
 				fieldList.add(EmaFactory.createFieldEntry().real(22, 14400 + i, OmmReal.MagnitudeType.EXPONENT_NEG_2));
 				fieldList.add(EmaFactory.createFieldEntry().real(30, 10 + i, OmmReal.MagnitudeType.EXPONENT_0));
 				
-				provider.submit( EmaFactory.createUpdateMsg().payload( fieldList ), itemHandle );
+				provider.submit( EmaFactory.createUpdateMsg().serviceName("NI_PUB").name("IBM.N").payload( fieldList ), itemHandle );
 				Thread.sleep(1000);
 			}
 		} 

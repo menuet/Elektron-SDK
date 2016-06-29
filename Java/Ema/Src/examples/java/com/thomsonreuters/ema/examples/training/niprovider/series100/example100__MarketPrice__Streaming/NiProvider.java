@@ -47,7 +47,7 @@ public class NiProvider {
 				fieldList.add(EmaFactory.createFieldEntry().real(22, 3991 + i, OmmReal.MagnitudeType.EXPONENT_NEG_2));
 				fieldList.add(EmaFactory.createFieldEntry().real(30, 10 + i, OmmReal.MagnitudeType.EXPONENT_0));
 				
-				provider.submit( EmaFactory.createUpdateMsg().payload( fieldList ), itemHandle );
+				provider.submit( EmaFactory.createUpdateMsg().serviceName("NI_PUB").name("IBM.N").payload( fieldList ), itemHandle );
 				Thread.sleep(1000);
 			}
 		} 
