@@ -2,31 +2,53 @@
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
 
   <PropertyGroup>
-    <ElekPropProjectIntName Condition="'$(ElekPropProjectIntName)'==''">$(ProjectName)</ElekPropProjectIntName>
-    <ElekPropProjectTargetName Condition="'$(ElekPropProjectTargetName)'==''">$(ProjectName)</ElekPropProjectTargetName>
-
-    <ElekPropPlatform Condition="'$(Platform)'=='x64'">WIN_64</ElekPropPlatform>
-    <ElekPropPlatform Condition="'$(Platform)'=='Win32'">WIN_32</ElekPropPlatform>
-
-    <ElekPropPlatformToolset Condition="'$(PlatformToolset)'=='v100'">VS100</ElekPropPlatformToolset>
-    <ElekPropPlatformToolset Condition="'$(PlatformToolset)'=='v110'">VS110</ElekPropPlatformToolset>
-    <ElekPropPlatformToolset Condition="'$(PlatformToolset)'=='v120'">VS120</ElekPropPlatformToolset>
-    <ElekPropPlatformToolset Condition="'$(PlatformToolset)'=='v140'">VS140</ElekPropPlatformToolset>
-
-    <ElekPropConfiguration>$(Configuration)</ElekPropConfiguration>
-
-    <ElekPropVariant>$(ElekPropPlatform)_$(ElekPropPlatformToolset)\$(Configuration)</ElekPropVariant>
-
-    <ElekPropOutDir>$(MSBuildThisFileDirectory)..\Libs\$(ElekPropVariant)</ElekPropOutDir>
-    <ElekPropIntDir>$(ElekPropOutDir)\$(ElekPropProjectIntName)</ElekPropIntDir>
-  </PropertyGroup>
-
-  <PropertyGroup>
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
     <OutDir>$(ElekPropOutDir)\</OutDir>
     <IntDir>$(ElekPropIntDir)\</IntDir>
     <LinkIncremental>false</LinkIncremental>
     <TargetName>$(ElekPropProjectTargetName)</TargetName>
   </PropertyGroup>
+
+  <ItemDefinitionGroup>
+    <Midl>
+      <TargetEnvironment>X64</TargetEnvironment>
+    </Midl>
+    <ClCompile>
+      <Optimization>MaxSpeed</Optimization>
+      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <AdditionalIncludeDirectories>..\Include\Codec;..\Include\Transport;..\Include\Cache;..\Include\Util;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>WIN32;WIN32_LEAN_AND_MEAN;NDEBUG;_CONSOLE;_CRT_SECURE_NO_WARNINGS;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <TreatWChar_tAsBuiltInType>false</TreatWChar_tAsBuiltInType>
+      <PrecompiledHeaderOutputFile>$(IntDir)$(TargetName).pch</PrecompiledHeaderOutputFile>
+      <ObjectFileName>$(IntDir)</ObjectFileName>
+      <ProgramDataBaseFileName>$(IntDir)$(TargetName).pdb</ProgramDataBaseFileName>
+      <BrowseInformation>true</BrowseInformation>
+      <WarningLevel>Level3</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <DisableSpecificWarnings>4290;%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <CompileAs>CompileAsC</CompileAs>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>msvcprt.lib;msvcrt.lib;ws2_32.lib;wininet.lib;%(AdditionalDependencies)</AdditionalDependencies>
+      <OutputFile>$(OutDir)$(ElekPropProjectTargetName).dll</OutputFile>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <AdditionalLibraryDirectories>;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <IgnoreSpecificDefaultLibraries>;%(IgnoreSpecificDefaultLibraries)</IgnoreSpecificDefaultLibraries>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <ProgramDatabaseFile>$(OutDir)$(ProjectName).pdb</ProgramDatabaseFile>
+      <SubSystem>Console</SubSystem>
+      <TargetMachine>MachineX64</TargetMachine>
+    </Link>
+    <Lib>
+      <AdditionalOptions>/IGNORE:4006 %(AdditionalOptions)</AdditionalOptions>
+      <OutputFile>$(OutDir)/$(ElekPropProjectTargetName).lib</OutputFile>
+      <SuppressStartupBanner>true</SuppressStartupBanner>
+      <UseUnicodeResponseFiles>true</UseUnicodeResponseFiles>
+    </Lib>
+  </ItemDefinitionGroup>
 
 </Project>

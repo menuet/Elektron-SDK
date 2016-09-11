@@ -1,9 +1,37 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
   <PropertyGroup>
-    <ConfigurationType>StaticLibrary</ConfigurationType>
-    <CharacterSet>MultiByte</CharacterSet>
-    <WholeProgramOptimization>false</WholeProgramOptimization>
-    <PlatformToolset>v140</PlatformToolset>
+    <PlatformToolset Condition="'$(PlatformToolset)'=='' and '$(VisualStudioVersion)'=='14.0'">v140</PlatformToolset>
+    <PlatformToolset Condition="'$(PlatformToolset)'=='' and '$(VisualStudioVersion)'=='12.0'">v120</PlatformToolset>
+    <PlatformToolset Condition="'$(PlatformToolset)'=='' and '$(VisualStudioVersion)'=='11.0'">v110</PlatformToolset>
+    <PlatformToolset Condition="'$(PlatformToolset)'==''">v100</PlatformToolset>
+
+    <Platform Condition="'$(Platform)' == ''">x64</Platform>
+
+    <Configuration Condition="'$(Configuration)' == ''">Debug</Configuration>
   </PropertyGroup>
+
+  <PropertyGroup>
+    <ElekPropProjectBinaryType Condition="'$(ElekPropProjectBinaryType)'==''">StaticLibrary</ElekPropProjectBinaryType>
+    <ElekPropProjectTargetName Condition="'$(ElekPropProjectTargetName)'==''">$(ProjectName)</ElekPropProjectTargetName>
+    <ElekPropProjectIntName Condition="'$(ElekPropProjectIntName)'=='' and '$(ElekPropProjectBinaryType)'=='StaticLibrary'">$(ElekPropProjectTargetName)</ElekPropProjectIntName>
+    <ElekPropProjectIntName Condition="'$(ElekPropProjectIntName)'=='' and '$(ElekPropProjectBinaryType)'=='DynamicLibrary'">$(ElekPropProjectTargetName)_Shared</ElekPropProjectIntName>
+
+    <ElekPropPlatform Condition="'$(Platform)'=='x64'">WIN_64</ElekPropPlatform>
+    <ElekPropPlatform Condition="'$(Platform)'=='Win32'">WIN_32</ElekPropPlatform>
+
+    <ElekPropPlatformToolset Condition="'$(PlatformToolset)'=='v100'">VS100</ElekPropPlatformToolset>
+    <ElekPropPlatformToolset Condition="'$(PlatformToolset)'=='v110'">VS110</ElekPropPlatformToolset>
+    <ElekPropPlatformToolset Condition="'$(PlatformToolset)'=='v120'">VS120</ElekPropPlatformToolset>
+    <ElekPropPlatformToolset Condition="'$(PlatformToolset)'=='v140'">VS140</ElekPropPlatformToolset>
+
+    <ElekPropConfiguration>$(Configuration)</ElekPropConfiguration>
+
+    <ElekPropVariant>$(ElekPropPlatform)_$(ElekPropPlatformToolset)\$(Configuration)</ElekPropVariant>
+
+    <ElekPropOutDir>$(MSBuildThisFileDirectory)..\Libs\$(ElekPropVariant)</ElekPropOutDir>
+    <ElekPropIntDir>$(ElekPropOutDir)\$(ElekPropProjectIntName)</ElekPropIntDir>
+  </PropertyGroup>
+
 </Project>
