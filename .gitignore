@@ -8,6 +8,8 @@
 #VI Editor temporary files
 *.swp
 
+/Cpp-C/Eta/Libs
+/Cpp-C/Eta/Impl/Stubs_VS140.VC.db
 ema/Libs/*
 eta/Libs/*
 *librssl*

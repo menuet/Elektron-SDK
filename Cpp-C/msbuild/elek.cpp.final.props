@@ -1,0 +1,32 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+
+  <PropertyGroup>
+    <ElekPropProjectIntName Condition="'$(ElekPropProjectIntName)'==''">$(ProjectName)</ElekPropProjectIntName>
+    <ElekPropProjectTargetName Condition="'$(ElekPropProjectTargetName)'==''">$(ProjectName)</ElekPropProjectTargetName>
+
+    <ElekPropPlatform Condition="'$(Platform)'=='x64'">WIN_64</ElekPropPlatform>
+    <ElekPropPlatform Condition="'$(Platform)'=='Win32'">WIN_32</ElekPropPlatform>
+
+    <ElekPropPlatformToolset Condition="'$(PlatformToolset)'=='v100'">VS100</ElekPropPlatformToolset>
+    <ElekPropPlatformToolset Condition="'$(PlatformToolset)'=='v110'">VS110</ElekPropPlatformToolset>
+    <ElekPropPlatformToolset Condition="'$(PlatformToolset)'=='v120'">VS120</ElekPropPlatformToolset>
+    <ElekPropPlatformToolset Condition="'$(PlatformToolset)'=='v140'">VS140</ElekPropPlatformToolset>
+
+    <ElekPropConfiguration>$(Configuration)</ElekPropConfiguration>
+
+    <ElekPropVariant>$(ElekPropPlatform)_$(ElekPropPlatformToolset)\$(Configuration)</ElekPropVariant>
+
+    <ElekPropOutDir>$(MSBuildThisFileDirectory)..\Libs\$(ElekPropVariant)</ElekPropOutDir>
+    <ElekPropIntDir>$(ElekPropOutDir)\$(ElekPropProjectIntName)</ElekPropIntDir>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <OutDir>$(ElekPropOutDir)\</OutDir>
+    <IntDir>$(ElekPropIntDir)\</IntDir>
+    <LinkIncremental>false</LinkIncremental>
+    <TargetName>$(ElekPropProjectTargetName)</TargetName>
+  </PropertyGroup>
+
+</Project>
