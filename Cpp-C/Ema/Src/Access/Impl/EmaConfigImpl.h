@@ -964,7 +964,7 @@ public:
 	template<typename T>
 	bool get( const EmaString& itemToRetrieve, T& retrievedItem ) const
 	{
-		int pos;
+		UInt32 pos;
 		for ( pos = itemToRetrieve.length() - 1; pos >= 0; --pos )
 			if ( '|' == itemToRetrieve[pos] )
 				break;
