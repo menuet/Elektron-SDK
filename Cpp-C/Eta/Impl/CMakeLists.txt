@@ -58,12 +58,12 @@ set(
 	)
 
 add_library(stubs-shared SHARED ${ETA_STUBS_FILES})
-target_compile_definitions(stubs-shared PRIVATE RSSL_EXPORTS WIN32_LEAN_AND_MEAN _CRT_SECURE_NO_WARNINGS)
+target_compile_definitions(stubs-shared PRIVATE ${ELEK_DEFINITIONS} RSSL_EXPORTS)
 target_compile_definitions(stubs-shared INTERFACE RSSL_IMPORTS)
 target_include_directories(stubs-shared PRIVATE ${ETA_STUBS_INCLUDE_DIRS})
 
 add_library(stubs-static STATIC ${ETA_STUBS_FILES})
-target_compile_definitions(stubs-static PRIVATE WIN32_LEAN_AND_MEAN _CRT_SECURE_NO_WARNINGS)
+target_compile_definitions(stubs-static PRIVATE ${ELEK_DEFINITIONS})
 target_include_directories(stubs-static PRIVATE ${ETA_STUBS_INCLUDE_DIRS})
 
 
@@ -91,13 +91,13 @@ set(
 	)
 
 add_library(cachestubs-shared SHARED ${ETA_CACHESTUBS_FILES})
-target_compile_definitions(cachestubs-shared PRIVATE RSSL_VA_EXPORTS WIN32_LEAN_AND_MEAN _CRT_SECURE_NO_WARNINGS)
+target_compile_definitions(cachestubs-shared PRIVATE ${ELEK_DEFINITIONS} RSSL_VA_EXPORTS)
 target_compile_definitions(cachestubs-shared INTERFACE RSSL_VA_IMPORTS)
 target_include_directories(cachestubs-shared PRIVATE ${ETA_CACHESTUBS_INCLUDE_DIRS})
 target_link_libraries(cachestubs-shared PUBLIC stubs-shared)
 
 add_library(cachestubs-static STATIC ${ETA_CACHESTUBS_FILES})
-target_compile_definitions(cachestubs-static PRIVATE WIN32_LEAN_AND_MEAN _CRT_SECURE_NO_WARNINGS)
+target_compile_definitions(cachestubs-static PRIVATE ${ELEK_DEFINITIONS})
 target_include_directories(cachestubs-static PRIVATE ${ETA_CACHESTUBS_INCLUDE_DIRS})
 target_link_libraries(cachestubs-static PUBLIC stubs-static)
 
@@ -197,13 +197,19 @@ set(
 	)
 
 add_library(va-shared SHARED ${ETA_VA_FILES})
-target_compile_definitions(va-shared PRIVATE RSSL_VA_EXPORTS WIN32_LEAN_AND_MEAN _CRT_SECURE_NO_WARNINGS)
+target_compile_definitions(va-shared PRIVATE ${ELEK_DEFINITIONS} RSSL_VA_EXPORTS)
 target_compile_definitions(va-shared INTERFACE RSSL_VA_IMPORTS)
 target_include_directories(va-shared PRIVATE ${ETA_VA_INCLUDE_DIRS})
-target_link_libraries(va-shared PUBLIC stubs-shared ws2_32)
+target_link_libraries(va-shared PUBLIC stubs-shared)
+if(MSVC)
+    target_link_libraries(va-shared PUBLIC ws2_32)
+endif()
 
 add_library(va-static STATIC ${ETA_VA_FILES})
-target_compile_definitions(va-static PRIVATE WIN32_LEAN_AND_MEAN _CRT_SECURE_NO_WARNINGS)
+target_compile_definitions(va-static PRIVATE ${ELEK_DEFINITIONS})
 target_include_directories(va-static PRIVATE ${ETA_VA_INCLUDE_DIRS})
-target_link_libraries(va-static PUBLIC stubs-static ws2_32)
+target_link_libraries(va-static PUBLIC stubs-static)
+if(MSVC)
+    target_link_libraries(va-static PUBLIC ws2_32)
+endif()
 
