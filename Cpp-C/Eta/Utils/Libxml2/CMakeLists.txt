@@ -112,14 +112,26 @@ set(
     "${PROJECT_SOURCE_DIR}/include"
     )
 
-set_source_files_properties("${PROJECT_SOURCE_DIR}/xmlIO.c" PROPERTIES COMPILE_FLAGS "/wd4996")
+if(MSVC)
+    set_source_files_properties("${PROJECT_SOURCE_DIR}/xmlIO.c" PROPERTIES COMPILE_FLAGS "/wd4996")
+endif()
 
 add_library(libxml2-shared SHARED ${LIBXML2_FILES})
 target_compile_definitions(libxml2-shared PRIVATE ${ELEK_DEFINITIONS} _CRT_NO_POSIX_ERROR_CODES)
-target_compile_options(libxml2-shared PRIVATE "/wd4244" "/wd4267" "/wd4311" "/wd4312")
+if(MSVC)
+    target_compile_options(libxml2-shared PRIVATE ${ELEK_C_FLAGS} "/wd4244" "/wd4267" "/wd4311" "/wd4312")
+else()
+    target_compile_options(libxml2-shared PRIVATE ${ELEK_C_FLAGS})
+endif()
 target_include_directories(libxml2-shared PRIVATE ${LIBXML2_INCLUDE_DIRS})
 
 add_library(libxml2-static STATIC ${LIBXML2_FILES})
 target_compile_definitions(libxml2-static PRIVATE ${ELEK_DEFINITIONS} _CRT_NO_POSIX_ERROR_CODES)
-target_compile_options(libxml2-static PRIVATE "/wd4244" "/wd4267" "/wd4311" "/wd4312")
+if(MSVC)
+    target_compile_options(libxml2-shared PRIVATE ${ELEK_C_FLAGS} "/wd4244" "/wd4267" "/wd4311" "/wd4312")
+else()
+    target_compile_options(libxml2-shared PRIVATE ${ELEK_C_FLAGS})
+endif()
 target_include_directories(libxml2-static PRIVATE ${LIBXML2_INCLUDE_DIRS})
+
+
